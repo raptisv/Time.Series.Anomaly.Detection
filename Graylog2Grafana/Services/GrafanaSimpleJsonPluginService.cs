@@ -48,15 +48,27 @@ namespace Graylog2Grafana.Abstractions
 
                     if (monitorSeriesItem != null)
                     {
-                        var monitorSeriesData = await _monitorSeriesDataService.GetInRangeAsync(monitorSeriesItem.ID, request.Range.From, request.Range.To);
+                        var monitorSeriesData = (await _monitorSeriesDataService.GetInRangeAsync(monitorSeriesItem.ID, request.Range.From, request.Range.To))
+                            .OrderBy(x => x.Timestamp)
+                            .ToList();
 
-                        // Remove current minute from the calculations as it is probably still in progress of gathering data
-                        monitorSeriesData.RemoveAll(x => Utils.TruncateToMinute(x.Timestamp) == Utils.TruncateToMinute(DateTime.UtcNow));
+                        var currentMinuteInResultSet = monitorSeriesData.Any(x => Utils.TruncateToMinute(x.Timestamp) == Utils.TruncateToMinute(DateTime.UtcNow));
+
+                        if (currentMinuteInResultSet)
+                        {
+                            // Remove current minute as it is probably still in progress of gathering data
+                            monitorSeriesData.RemoveAll(x => Utils.TruncateToMinute(x.Timestamp) == Utils.TruncateToMinute(DateTime.UtcNow));
+                        }
+                        else
+                        {
+                            // Remove last minute as it is probably still in progress of gathering data
+                            monitorSeriesData.Remove(monitorSeriesData.Last());
+                        }
 
                         response.Add(new TimeSiriesReponseTargetItem()
                         {
                             Target = reqTarget.Target,
-                            Datapoints = monitorSeriesData.OrderBy(x => x.Timestamp).Select(x => new List<object>()
+                            Datapoints = monitorSeriesData.Select(x => new List<object>()
                             {
                                 x.Count, Utils.GetUnixTimestampMilliseconds(x.Timestamp)
                             }).ToList()
@@ -90,7 +102,7 @@ namespace Graylog2Grafana.Abstractions
 
                     foreach (var item in anomaliesWithinRange)
                     {
-                        if (queryItems.Any(x => x.Trim().Equals(item.MonitorSeries.Name, StringComparison.OrdinalIgnoreCase)))
+                        if (queryItems.Any(x =>x.Equals("*") || x.Trim().Equals(item.MonitorSeries.Name, StringComparison.OrdinalIgnoreCase)))
                         {
                             // If this series monitor is set for this type
                             if (item.MonitorSeries.MonitorType == MonitorType.DownwardsAndUpwards || item.MonitorSeries.MonitorType == annotationType)
