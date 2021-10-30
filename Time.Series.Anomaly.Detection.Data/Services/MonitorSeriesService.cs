@@ -71,6 +71,9 @@ namespace Time.Series.Anomaly.Detection.Data.Services
             var oldItems = _dbContext.MonitorSeriesData.Where(u => u.MonitorSeriesID == model.ID);
             _dbContext.MonitorSeriesData.RemoveRange(oldItems);
 
+            var oldAlertItems = _dbContext.AnomalyDetectionData.Where(u => u.MonitorSeriesID == model.ID);
+            _dbContext.AnomalyDetectionData.RemoveRange(oldAlertItems);
+
             await _dbContext.SaveChangesAsync();
         }
 
