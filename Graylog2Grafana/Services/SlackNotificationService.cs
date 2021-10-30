@@ -17,9 +17,11 @@ namespace Graylog.Grafana.Services
         private readonly HttpClient _httpClient;
 
         public SlackNotificationService(
+            ILogger logger,
             IOptions<SlackConfiguration> slackConfiguration,
             IHttpClientFactory clientFactory)
         {
+            _logger = logger;
             _slackConfiguration = slackConfiguration;
             _httpClient = clientFactory.CreateClient("Slack");
         }

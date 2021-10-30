@@ -1,0 +1,115 @@
+version: '3.7'
+services:
+
+  # Mongo
+  mongo:
+    image: mongo:3
+    networks:
+      - graylog-backend
+    expose:
+      - 27017/tcp
+    volumes:
+      - mongo-data:/data/db  
+      
+  # Elasticsearch
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch-oss:6.8.10
+    networks:
+      - graylog-backend
+    expose:
+      - 9200/tcp
+      - 9300/tcp
+    environment:
+      - http.host=0.0.0.0
+      - transport.host=localhost
+      - network.host=0.0.0.0
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+
+  # Graylog
+  graylog:
+    image: graylog/graylog:3.3
+    depends_on:
+      - mongo
+      - elasticsearch
+    links:
+      - mongo:mongo
+      - elasticsearch:elasticsearch
+    networks:
+      - graylog-backend
+      - graylog2grafanaweb-backend
+    ports:      
+      - 9000:9000 # Graylog web interface and REST API      
+      - 1514:1514 # Syslog TCP      
+      - 1514:1514/udp # Syslog UDP      
+      - 12201:12201 # GELF TCP      
+      - 12201:12201/udp # GELF UDP
+    environment:
+      - GRAYLOG_PASSWORD_SECRET=somepasswordpepper      
+      - GRAYLOG_ROOT_PASSWORD_SHA2=8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918 # Password: admin
+      - GRAYLOG_HTTP_EXTERNAL_URI=http://127.0.0.1:9000/
+    volumes:
+      - graylog-data:/usr/share/graylog/data/journal
+    healthcheck:
+      test: "curl -sSf http://127.0.0.1:9000 || exit 1" 
+      start_period: 15s      
+      interval: 15s          
+      timeout: 10s        
+      retries: 3          
+     
+  # Grafana
+  grafana:
+    image: grafana/grafana:latest
+    networks:
+     - graylog2grafanaweb-backend
+    ports:
+      - 3000:3000
+    volumes:
+      - grafana-data:/var/lib/grafana
+
+  # Graylog2Grafana.Web
+  graylog2grafanaweb:
+    image: graylog2grafanaweb:latest
+    restart: always
+    depends_on:
+      - graylog
+      - grafana
+    networks:
+      - graylog2grafanaweb-backend
+    ports:
+      - 5002:5002
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - Configuration__Url=http://0.0.0.0:5002
+      - Configuration__FilesPath=/etc/graylog2grafanaweb/Files
+      - Graylog__Url=http://graylog:9000
+      - Graylog__Username=admin
+      - Graylog__Password=admin
+      - Slack__Enabled=false
+      - Slack__Channel=slack_channel_id
+      - Slack__BearerToken=slack_auth_bearer_token
+      - Serilog__WriteTo__0__Args__hostnameOrAddress=graylog
+    volumes:
+      - graylog2grafanaweb-data:/etc/graylog2grafanaweb
+
+networks:
+  graylog2grafanaweb-backend:
+    driver: bridge
+  graylog-backend:
+    driver: bridge
+
+volumes:
+  graylog2grafanaweb-data:
+  mongo-data:
+  elasticsearch-data:
+  graylog-data:
+  grafana-data:

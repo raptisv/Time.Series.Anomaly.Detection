@@ -42,9 +42,16 @@ namespace Graylog.Grafana.Web
             .Configure<GraylogConfiguration>(Configuration.GetSection("Graylog"))
             .Configure<SlackConfiguration>(Configuration.GetSection("Slack"));
 
+            var filesDirectory = new DirectoryInfo(Configuration.GetValue<string>("Configuration:FilesPath"));
+
+            if (!filesDirectory.Exists)
+            {
+                filesDirectory.Create();
+            }
+
             services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =>
             {
-                options.UseSqlite($"Data Source={Path.Combine(Configuration.GetValue<string>("Configuration:FilesPath"), "Graylog2Grafana.db")}");
+                options.UseSqlite($"Data Source={Path.Combine(filesDirectory.FullName, "Graylog2Grafana.db")}");
             });
 
             services

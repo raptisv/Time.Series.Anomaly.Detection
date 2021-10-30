@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 
 namespace Time.Series.Anomaly.Detection.Models
@@ -27,7 +26,7 @@ namespace Time.Series.Anomaly.Detection.Models
 
         public static DateTime? GetDateFromUnixTimestamp(string unixTime)
         {
-            unixTime = unixTime ?? string.Empty;
+            unixTime ??= string.Empty;
 
             if (unixTime.All(char.IsDigit))
             {

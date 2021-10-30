@@ -81,8 +81,8 @@ namespace Graylog2Grafana.Workers
                             result.Series.Reverse();
                             var last = result.Series.First();
                             var preLast = result.Series.Skip(1).Take(1).First();
-                            var isUpwardsSpike = last.Data > last.Lower;
-                            var isDownwardsSpike = last.Data < last.Lower;
+                            var isUpwardsSpike = last.Data > preLast.Data;
+                            var isDownwardsSpike = last.Data < preLast.Data;
 
                             var isInAcceptedLowerLimit = true;
                             if (currentMonitor.LowerLimitToDetect.HasValue)

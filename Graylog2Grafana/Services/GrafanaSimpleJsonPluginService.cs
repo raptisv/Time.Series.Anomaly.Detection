@@ -71,34 +71,35 @@ namespace Graylog2Grafana.Abstractions
 
             var response = new List<AnnotationsResponse>();
 
-            var query = request?.Annotation?.Query ?? string.Empty;
+            var queryItems = (request.Annotation.Query ?? string.Empty).Split('#', StringSplitOptions.RemoveEmptyEntries);
 
-            var queryItems = query.Split('#', StringSplitOptions.RemoveEmptyEntries);
-
-            var annotationTypeName = queryItems[0];
-
-            if (request.Annotation.Enable &&
-                Enum.IsDefined(typeof(MonitorType), annotationTypeName))
+            if (queryItems.Length > 0 && request?.Range != null)
             {
-                var annotationType = annotationTypes.Single(x => x.ToString().Equals(annotationTypeName, StringComparison.OrdinalIgnoreCase));
+                var annotationTypeName = queryItems[0];
 
-                // Get spikes of this type withing range
-                var anomaliesWithinRange = await _anomalyDetectionDataService.GetInRangeAsync(annotationType, request.Range.From, request.Range.To);
-
-                foreach (var item in anomaliesWithinRange)
+                if (request.Annotation.Enable &&
+                    Enum.IsDefined(typeof(MonitorType), annotationTypeName))
                 {
-                    if (queryItems.Any(x => x.Trim().Equals(item.MonitorSeries.Name, StringComparison.OrdinalIgnoreCase)))
+                    var annotationType = annotationTypes.Single(x => x.ToString().Equals(annotationTypeName, StringComparison.OrdinalIgnoreCase));
+
+                    // Get spikes of this type withing range
+                    var anomaliesWithinRange = await _anomalyDetectionDataService.GetInRangeAsync(annotationType, request.Range.From, request.Range.To);
+
+                    foreach (var item in anomaliesWithinRange)
                     {
-                        // If this series monitor is set for this type
-                        if (item.MonitorSeries.MonitorType == MonitorType.DownwardsAndUpwards || item.MonitorSeries.MonitorType == annotationType)
+                        if (queryItems.Any(x => x.Trim().Equals(item.MonitorSeries.Name, StringComparison.OrdinalIgnoreCase)))
                         {
-                            response.Add(new AnnotationsResponse()
+                            // If this series monitor is set for this type
+                            if (item.MonitorSeries.MonitorType == MonitorType.DownwardsAndUpwards || item.MonitorSeries.MonitorType == annotationType)
                             {
-                                Annotation = request.Annotation,
-                                Title = item.MonitorSeries.Name,
-                                Text = item.Comments,
-                                Time = Utils.GetUnixTimestampMilliseconds(item.Timestamp)
-                            });
+                                response.Add(new AnnotationsResponse()
+                                {
+                                    Annotation = request.Annotation,
+                                    Title = item.MonitorSeries.Name,
+                                    Text = item.Comments,
+                                    Time = Utils.GetUnixTimestampMilliseconds(item.Timestamp)
+                                });
+                            }
                         }
                     }
                 }

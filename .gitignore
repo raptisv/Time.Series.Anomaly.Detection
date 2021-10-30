@@ -41,6 +41,8 @@ Generated\ Files/
 TestResult.xml
 
 Graylog2Grafana.db
+Graylog2Grafana.db-shm
+Graylog2Grafana.db-wal
 
 # Build Results of an ATL Project
 [Dd]ebugPS/
