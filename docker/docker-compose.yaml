@@ -95,6 +95,7 @@ services:
       - Graylog__Username=admin
       - Graylog__Password=admin
       - Detection__IntervalMs=60000
+      - Detection__DelayInMinutes=1
       - Slack__Enabled=false
       - Slack__Channel=slack_channel_id
       - Slack__BearerToken=slack_auth_bearer_token

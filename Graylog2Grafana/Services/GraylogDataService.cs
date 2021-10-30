@@ -25,20 +25,23 @@ namespace Graylog.Grafana.Services
         private readonly INotificationService _notificationService;
         private readonly IAnomalyDetectionService _anomalyDetectionService;
         private readonly IOptions<GraylogConfiguration> _graylogConfiguration;
+        private readonly IOptions<DetectionConfiguration> _detectionConfiguration;
         private readonly HttpClient _httpClient;
 
         public GraylogDataService(
             IServiceProvider serviceProvider,
-            IHttpClientFactory clientFactory, 
-            INotificationService notificationService, 
-            IAnomalyDetectionService anomalyDetectionService, 
-            IOptions<GraylogConfiguration> graylogConfiguration)
+            IHttpClientFactory clientFactory,
+            INotificationService notificationService,
+            IAnomalyDetectionService anomalyDetectionService,
+            IOptions<GraylogConfiguration> graylogConfiguration, 
+            IOptions<DetectionConfiguration> detectionConfiguration)
         {
             _serviceProvider = serviceProvider;
             _httpClient = clientFactory.CreateClient("Graylog");
             _notificationService = notificationService;
             _anomalyDetectionService = anomalyDetectionService;
             _graylogConfiguration = graylogConfiguration;
+            _detectionConfiguration = detectionConfiguration;
         }
 
         public async Task LoadDataAsync()
@@ -159,26 +162,18 @@ namespace Graylog.Grafana.Services
 
                 foreach (var currentMonitor in allMonitors)
                 {
-                    var stepsBack = currentMonitor.MinuteDurationForAnomalyDetection;
+                    var stepsBack = currentMonitor.MinuteDurationForAnomalyDetection + Math.Abs(_detectionConfiguration.Value.DelayInMinutes);
 
                     var monitorSeriesData = (await monitorSeriesDataService.GetLatestAsync(stepsBack, currentMonitor.ID))
                         .OrderBy(x => x.Timestamp)
                         .ToList();
 
-                    var currentMinute = Utils.TruncateToMinute(DateTime.UtcNow);
+                    // Remove current minute from the calculations as it is probably still in progress of gathering data
+                    monitorSeriesData.RemoveAll(x => Utils.TruncateToMinute(x.Timestamp) == Utils.TruncateToMinute(DateTime.UtcNow));
 
-                    var currentMinuteInResultSet = monitorSeriesData.Any(x => Utils.TruncateToMinute(x.Timestamp) == currentMinute);
-
-                    if (currentMinuteInResultSet)
-                    {
-                        // Remove current minute from the calculations as it is probably still in progress of gathering data
-                        monitorSeriesData.RemoveAll(x => Utils.TruncateToMinute(x.Timestamp) == currentMinute);
-                    }
-                    else
-                    {
-                        // Remove last minute from the calculations as it is probably still in progress of gathering data
-                        monitorSeriesData.RemoveAll(x => Utils.TruncateToMinute(x.Timestamp) == currentMinute.AddMinutes(-1));
-                    }
+                    // Remove some minutes in case the datasource needs some time to gather data
+                    var dateFromToIgnoreValues = Utils.TruncateToMinute(DateTime.UtcNow.AddMinutes(-Math.Abs(_detectionConfiguration.Value.DelayInMinutes)));
+                    monitorSeriesData.RemoveAll(x => Utils.TruncateToMinute(x.Timestamp) >= dateFromToIgnoreValues);
 
                     if (monitorSeriesData.Count < 12)
                     {
