@@ -161,10 +161,24 @@ namespace Graylog.Grafana.Services
                 {
                     var stepsBack = currentMonitor.MinuteDurationForAnomalyDetection;
 
-                    var monitorSeriesData = await monitorSeriesDataService.GetLatestAsync(stepsBack, currentMonitor.ID);
+                    var monitorSeriesData = (await monitorSeriesDataService.GetLatestAsync(stepsBack, currentMonitor.ID))
+                        .OrderBy(x => x.Timestamp)
+                        .ToList();
 
-                    // Remove current minute from the calculations as it is probably still in progress of gathering data
-                    monitorSeriesData.RemoveAll(x => Utils.TruncateToMinute(x.Timestamp) == Utils.TruncateToMinute(DateTime.UtcNow));
+                    var currentMinute = Utils.TruncateToMinute(DateTime.UtcNow);
+
+                    var currentMinuteInResultSet = monitorSeriesData.Any(x => Utils.TruncateToMinute(x.Timestamp) == currentMinute);
+
+                    if (currentMinuteInResultSet)
+                    {
+                        // Remove current minute from the calculations as it is probably still in progress of gathering data
+                        monitorSeriesData.RemoveAll(x => Utils.TruncateToMinute(x.Timestamp) == currentMinute);
+                    }
+                    else
+                    {
+                        // Remove last minute from the calculations as it is probably still in progress of gathering data
+                        monitorSeriesData.RemoveAll(x => Utils.TruncateToMinute(x.Timestamp) == currentMinute.AddMinutes(-1));
+                    }
 
                     if (monitorSeriesData.Count < 12)
                     {
