@@ -20,5 +20,7 @@ namespace Time.Series.Anomaly.Detection.Data.Abstractions
         Task PostCountAsync(long monitorPerMinuteID, DateTime timestamp, int count);
 
         Task UpdateCountAsync(long ID, int count);
+
+        Task RemoveEntriesOlderThanAsync(uint days);
     }
 }

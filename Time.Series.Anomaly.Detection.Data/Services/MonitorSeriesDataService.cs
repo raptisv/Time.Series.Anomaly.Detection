@@ -96,5 +96,13 @@ namespace Time.Series.Anomaly.Detection.Data.Services
             _dbContext.Entry(item).Property(x => x.Count).IsModified = true;
             await _dbContext.SaveChangesAsync();
         }
+
+        public async Task RemoveEntriesOlderThanAsync(uint days)
+        {
+            var oldDate = DateTime.Now.AddDays(-days);
+            var oldItems = _dbContext.MonitorSeriesData.Where(u => u.Timestamp < oldDate);
+            _dbContext.MonitorSeriesData.RemoveRange(oldItems);
+            await _dbContext.SaveChangesAsync();
+        }
     }
 }

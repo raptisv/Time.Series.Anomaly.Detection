@@ -64,6 +64,9 @@ namespace Graylog.Grafana.Services
                         await monitorSeriesDataService.CreateOrUpdateByTimestampAsync(monitorSeriesItem.ID, date, d.Value);
                     }
                 }
+
+                // Retention policy, keep data for 3 days
+                await monitorSeriesDataService.RemoveEntriesOlderThanAsync(3);
             }
         }
 
