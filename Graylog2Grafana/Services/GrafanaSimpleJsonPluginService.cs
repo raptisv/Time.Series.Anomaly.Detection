@@ -50,6 +50,9 @@ namespace Graylog2Grafana.Abstractions
                     {
                         var monitorSeriesData = await _monitorSeriesDataService.GetInRangeAsync(monitorSeriesItem.ID, request.Range.From, request.Range.To);
 
+                        // Remove current minute from the calculations as it is probably still in progress of gathering data
+                        monitorSeriesData.RemoveAll(x => Utils.TruncateToMinute(x.Timestamp) == Utils.TruncateToMinute(DateTime.UtcNow));
+
                         response.Add(new TimeSiriesReponseTargetItem()
                         {
                             Target = reqTarget.Target,

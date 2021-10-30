@@ -39,6 +39,7 @@ namespace Graylog.Grafana.Web
                       .CreateLogger();
 
             services
+            .Configure<DetectionConfiguration>(Configuration.GetSection("Detection"))
             .Configure<GraylogConfiguration>(Configuration.GetSection("Graylog"))
             .Configure<SlackConfiguration>(Configuration.GetSection("Slack"));
 
@@ -67,15 +68,14 @@ namespace Graylog.Grafana.Web
             .AddSingleton<ILogger>((s) => Log.Logger)
             .AddSingleton<IDataService, GraylogDataService>()
             .AddSingleton<INotificationService, SlackNotificationService>()
-            .AddSingleton< IAnomalyDetectionService, AnomalyDetectionService>()
+            .AddSingleton<IAnomalyDetectionService, AnomalyDetectionService>()
             // Scoped
             .AddScoped<IMonitorSeriesService, MonitorSeriesService>()
             .AddScoped<IMonitorSeriesDataService, MonitorSeriesDataService>()
             .AddScoped<IAnomalyDetectionDataService, AnomalyDetectionDataService>()
             .AddScoped<IGrafanaSimpleJsonPluginService, GrafanaSimpleJsonPluginService>()
             // Hosted services
-            .AddHostedService<DataLoaderWorker>()
-            .AddHostedService<GraylogQueryAnomalyDetectionWorker>();
+            .AddHostedService<AnomalyDetectionWorker>();
 
             services.AddHttpClient("Graylog", c =>
             {
