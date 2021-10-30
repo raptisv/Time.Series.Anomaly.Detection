@@ -52,17 +52,13 @@ namespace Graylog2Grafana.Abstractions
                             .OrderBy(x => x.Timestamp)
                             .ToList();
 
-                        var currentMinuteInResultSet = monitorSeriesData.Any(x => Utils.TruncateToMinute(x.Timestamp) == Utils.TruncateToMinute(DateTime.UtcNow));
+                        var currentMinute = Utils.TruncateToMinute(DateTime.UtcNow);
 
-                        if (currentMinuteInResultSet)
+                        // Remove current minute as it is probably still in progress of gathering data
+                        if (monitorSeriesData.RemoveAll(x => Utils.TruncateToMinute(x.Timestamp) == currentMinute) == 0)
                         {
-                            // Remove current minute as it is probably still in progress of gathering data
-                            monitorSeriesData.RemoveAll(x => Utils.TruncateToMinute(x.Timestamp) == Utils.TruncateToMinute(DateTime.UtcNow));
-                        }
-                        else
-                        {
-                            // Remove last minute as it is probably still in progress of gathering data
-                            monitorSeriesData.Remove(monitorSeriesData.Last());
+                            // If current minute did not exist in resultset, remove previous minute as this is probably still in progress of gathering data
+                            monitorSeriesData.RemoveAll(x => Utils.TruncateToMinute(x.Timestamp) == currentMinute.AddMinutes(-1));
                         }
 
                         response.Add(new TimeSiriesReponseTargetItem()
