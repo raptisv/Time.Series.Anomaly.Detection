@@ -1,7 +1,7 @@
 # Time Series Anomaly Detection - From Graylog to Grafana
 It is usually not enough to just monitor a time series graph 24/7, you need to identify spikes and also get alerted.
 
-![alt text](https://github.com/raptisv/Time.Series.Anomaly.Detection/blob/main/Graylog2Grafana.Web/wwwroot/img/Graylog2Grafana.png "")
+![alt text](https://github.com/raptisv/Time.Series.Anomaly.Detection/blob/main/Graylog2Grafana.Web/wwwroot/img/Graylog2Grafana_4.png "")
 
 # TL;DR
 This project
