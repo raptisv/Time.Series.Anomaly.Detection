@@ -1,0 +1,43 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31205.134
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Graylog2Grafana.Web", "Graylog2Grafana.Web\Graylog2Grafana.Web.csproj", "{52DDDEB9-9422-4598-90FD-187BE9ACF035}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Time.Series.Anomaly.Detection", "Time.Series.Anomaly.Detection\Time.Series.Anomaly.Detection.csproj", "{02F1B887-8149-4595-9A36-B58D68ACE478}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Time.Series.Anomaly.Detection.Data", "Time.Series.Anomaly.Detection.Data\Time.Series.Anomaly.Detection.Data.csproj", "{8CCD8829-2BFA-4F01-9677-DDB7439FD0FA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Graylog2Grafana", "Graylog2Grafana\Graylog2Grafana.csproj", "{9BE5AF90-6E6F-44C7-95C0-A5CF7B235491}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{52DDDEB9-9422-4598-90FD-187BE9ACF035}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{52DDDEB9-9422-4598-90FD-187BE9ACF035}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{52DDDEB9-9422-4598-90FD-187BE9ACF035}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{52DDDEB9-9422-4598-90FD-187BE9ACF035}.Release|Any CPU.Build.0 = Release|Any CPU
+		{02F1B887-8149-4595-9A36-B58D68ACE478}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{02F1B887-8149-4595-9A36-B58D68ACE478}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{02F1B887-8149-4595-9A36-B58D68ACE478}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{02F1B887-8149-4595-9A36-B58D68ACE478}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8CCD8829-2BFA-4F01-9677-DDB7439FD0FA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8CCD8829-2BFA-4F01-9677-DDB7439FD0FA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8CCD8829-2BFA-4F01-9677-DDB7439FD0FA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8CCD8829-2BFA-4F01-9677-DDB7439FD0FA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9BE5AF90-6E6F-44C7-95C0-A5CF7B235491}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9BE5AF90-6E6F-44C7-95C0-A5CF7B235491}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9BE5AF90-6E6F-44C7-95C0-A5CF7B235491}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9BE5AF90-6E6F-44C7-95C0-A5CF7B235491}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {78508A4D-5C66-43E5-BBA0-588F4CCA5DCD}
+	EndGlobalSection
+EndGlobal
