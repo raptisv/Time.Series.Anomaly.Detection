@@ -1,4 +1,4 @@
-﻿@using Graylog.Grafana.Web.Models.Helpers;
+﻿@using Graylog2Grafana.Web.Models.Helpers;
 @using Time.Series.Anomaly.Detection.Data.Models.Enums;
 @using Time.Series.Anomaly.Detection.Data.Models;
 @model List<MonitorSeries>
@@ -27,10 +27,13 @@
                     <th scope="col">Name</th>
                     <th scope="col">Description</th>
                     <th scope="col">Query</th>
-                    <th scope="col">Minute duration for anomaly detection</th>
+                    <th scope="col" title="The amount of latest minutes to be used in anomaly detection">Steps</th>
                     <th scope="col">Sensitivity</th>
-                    <th scope="col">Lower limit</th>
-                    <th scope="col">Upper limit</th>
+                    <th scope="col" title="The value that below it, you will not be notified if any anomaly is detected">Lower limit</th>
+                    <th scope="col" title="The value that above it, you will not be notified if any anomaly is detected">Upper limit</th>
+                    <th scope="col" title="Do not produce alert within given minutes from the last alert in this series">No alert for</th>
+                    <th scope="col"></th>
+                    <th scope="col"></th>
                     <th scope="col"></th>
                 </tr>
             </thead>
@@ -45,8 +48,14 @@
                         <td>@item.Sensitivity</td>
                         <td>@item.LowerLimitToDetect</td>
                         <td>@item.UpperLimitToDetect</td>
+                        <td>@item.DoNotAlertAgainWithinMinutes</td>
                         <td>
-                            <a type="button" title="Edit" class="btn btn-secondary btn-sm" href="@Url.Action("Edit", "MonitorSeries", new { id = item.ID })"><i class="bi bi-pencil-square"></i></a>
+                            <a type="button" title="Preview" class="btn btn-secondary btn-sm" href="@Url.Action("Preview", "MonitorSeries", new { id = item.ID })"><i class="bi bi-search"></i></a>
+                        </td>
+                        <td>
+                            <a type="button" title="Edit" class="btn btn-primary btn-sm" href="@Url.Action("Edit", "MonitorSeries", new { id = item.ID })"><i class="bi bi-pencil-square"></i></a>
+                        </td>
+                        <td>
                             <a type="button" title="Delete" class="btn btn-danger btn-sm" href="@Url.Action("Delete", "MonitorSeries", new { id = item.ID })"><i class="bi bi-trash"></i></a>
                         </td>
                     </tr>

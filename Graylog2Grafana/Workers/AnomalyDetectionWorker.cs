@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using Serilog;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -14,16 +15,19 @@ namespace Graylog2Grafana.Workers
     {
         private readonly ILogger _logger;
         private readonly IEnumerable<IDataService> _dataServices;
+        private readonly INotificationService _notificationService;
         private readonly IOptions<DetectionConfiguration> _detectionConfiguration;
 
         public AnomalyDetectionWorker(
             ILogger logger,
-            IEnumerable<IDataService> dataServices, 
-            IOptions<DetectionConfiguration> detectionConfiguration)
+            IEnumerable<IDataService> dataServices,
+            IOptions<DetectionConfiguration> detectionConfiguration, 
+            INotificationService notificationService)
         {
             _logger = logger;
             _dataServices = dataServices;
             _detectionConfiguration = detectionConfiguration;
+            _notificationService = notificationService;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -40,8 +44,18 @@ namespace Graylog2Grafana.Workers
                         // Fetch data
                         await dataService.LoadDataAsync();
 
-                        // Detect, persist & alert
-                        await dataService.DetectPersistAndAlertAsync();
+                        // Detect & persist
+                        var anomalyDetectionResult = await dataService.DetectAndPersistAnomaliesAsync();
+
+                        // Alert if needed
+                        foreach(var anomalyDetected in anomalyDetectionResult.Where(x => x.AnomalyDetectedAtLatestTimeStamp))
+                        {
+                            await _notificationService.NotifyAsync(
+                                anomalyDetected.MonitorSeries, 
+                                anomalyDetected.MonitorType,
+                                anomalyDetected.LastDataInSeries,
+                                anomalyDetected.PrelastDataInSeries);
+                        }
                     }
                 }
                 catch (Exception ex)

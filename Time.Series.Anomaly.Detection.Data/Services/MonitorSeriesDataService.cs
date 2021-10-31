@@ -31,7 +31,6 @@ namespace Time.Series.Anomaly.Detection.Data.Services
             }
         }
 
-
         public Task<List<MonitorSeriesData>> GetLatestAsync(int pageSize, long monitorSeriesId, DateTime? timeStamp = null)
         {
             return GetLatestAsync(pageSize, new List<long>() { monitorSeriesId }, timeStamp);

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 
-namespace Graylog.Grafana.Web.Models.Helpers
+namespace Graylog2Grafana.Web.Models.Helpers
 {
     public static class EnumProvider<T>
     {

@@ -18,18 +18,23 @@ namespace Time.Series.Anomaly.Detection.Data.Services
             _dbContext = dbContext;
         }
 
-        public async Task PostAsync(long monitorSeriesID, DateTime timestamp, MonitorType type, string comments)
+        public async Task CreateIfNotAlreadyExistsAsync(long monitorSeriesID, DateTime timeStamp, MonitorType type, string comments)
         {
-            _dbContext.AnomalyDetectionData.Add(new AnomalyDetectionData()
-            {
-                ID = 0,
-                Timestamp = timestamp,
-                MonitorSeriesID = monitorSeriesID,
-                Comments = comments,
-                MonitorType = type
-            });
+            var sameAlertExists = await ExistsByMonitorSeriesAndTimestampAsync(monitorSeriesID, timeStamp);
 
-            await _dbContext.SaveChangesAsync();
+            if (!sameAlertExists)
+            {
+                _dbContext.AnomalyDetectionData.Add(new AnomalyDetectionData()
+                {
+                    ID = 0,
+                    Timestamp = timeStamp,
+                    MonitorSeriesID = monitorSeriesID,
+                    Comments = comments,
+                    MonitorType = type
+                });
+
+                await _dbContext.SaveChangesAsync();
+            }
         }
 
         public async Task<bool> ExistsByMonitorSeriesAndTimestampAsync(long monitorSeriesID, DateTime timestamp)
@@ -46,6 +51,14 @@ namespace Time.Series.Anomaly.Detection.Data.Services
                             .Include(x => x.MonitorSeries)
                             .Where(x => x.MonitorType == type && x.Timestamp >= from && x.Timestamp <= to)
                             .ToListAsync();
+        }
+
+        public async Task<AnomalyDetectionData> GetLatestForSeriesAsync(long monitorSeriesId)
+        {
+            return await _dbContext.AnomalyDetectionData
+                            .Where(x => x.MonitorSeriesID == monitorSeriesId)
+                            .OrderByDescending(x => x.Timestamp)
+                            .FirstOrDefaultAsync();
         }
     }
 }

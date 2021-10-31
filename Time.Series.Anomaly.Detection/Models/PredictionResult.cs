@@ -1,22 +1,30 @@
-﻿namespace Time.Series.Anomaly.Detection.Models
+﻿using System;
+
+namespace Time.Series.Anomaly.Detection.Models
 {
     public struct PredictionResult
     {
-        public int Index;
         public double Data;
-        public string TimeStamp;
+        public DateTime TimeStamp;
         public double Upper;
         public double Lower;
         public bool IsAnomaly;
 
-        public PredictionResult(int index, double data, string timeStamp, double upper, double lower, bool isAnomaly)
+        public long UnixTimestamp
         {
-            this.Index = index;
-            this.Data = data;
-            this.TimeStamp = timeStamp;
-            this.Upper = upper;
-            this.Lower = lower;
-            this.IsAnomaly = isAnomaly;
+            get
+            {
+                return Utils.GetUnixTimestamp(TimeStamp);
+            }
+        }
+
+        public PredictionResult(double data, DateTime timeStamp, double upper, double lower, bool isAnomaly)
+        {
+            Data = data;
+            TimeStamp = timeStamp;
+            Upper = upper;
+            Lower = lower;
+            IsAnomaly = isAnomaly;
         }
     }
 }

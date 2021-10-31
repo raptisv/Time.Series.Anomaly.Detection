@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System.Collections.Generic;
 
-namespace Graylog.Grafana.Models.SimpleJsonGrafanaPlugin.Response
+namespace Graylog2Grafana.Models.SimpleJsonGrafanaPlugin.Response
 {
     public class TimeSiriesReponseTargetItem
     {

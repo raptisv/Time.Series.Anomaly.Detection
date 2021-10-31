@@ -1,5 +1,5 @@
-﻿using Graylog.Grafana.Models.SimpleJsonGrafanaPlugin.Request;
-using Graylog.Grafana.Models.SimpleJsonGrafanaPlugin.Response;
+﻿using Graylog2Grafana.Models.SimpleJsonGrafanaPlugin.Request;
+using Graylog2Grafana.Models.SimpleJsonGrafanaPlugin.Response;
 using System;
 using System.Collections.Generic;
 using System.Linq;

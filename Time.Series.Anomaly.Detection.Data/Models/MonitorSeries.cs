@@ -32,6 +32,9 @@ namespace Time.Series.Anomaly.Detection.Data.Models
 
         public int? UpperLimitToDetect { get; set; }
 
+        [Range(0, 10000)]
+        public int? DoNotAlertAgainWithinMinutes { get; set; }
+
         public virtual List<MonitorSeriesData> MonitorSeriesData { get; set; }
         public virtual List<AnomalyDetectionData> AnomalyDetectionData { get; set; }
     }

@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace Graylog.Grafana.Models.SimpleJsonGrafanaPlugin.Request
+namespace Graylog2Grafana.Models.SimpleJsonGrafanaPlugin.Request
 {
     public class SearchRequest
     {

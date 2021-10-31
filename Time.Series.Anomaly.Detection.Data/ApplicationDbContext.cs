@@ -44,7 +44,8 @@ namespace Time.Series.Anomaly.Detection.Data.Models
                     UpperLimitToDetect = null,
                     MonitorType = Enums.MonitorType.DownwardsAndUpwards,
                     Description = "Initial dummy query",
-                    MinuteDurationForAnomalyDetection = 60
+                    MinuteDurationForAnomalyDetection = 60,
+                    DoNotAlertAgainWithinMinutes = null
                 });
         }
     }

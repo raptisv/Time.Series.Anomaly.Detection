@@ -1,8 +1,8 @@
-﻿using Graylog.Grafana.SimpleJsonGrafanaPlugin.Models;
+﻿using Graylog2Grafana.SimpleJsonGrafanaPlugin.Models;
 using Newtonsoft.Json;
 using System;
 
-namespace Graylog.Grafana.Models.SimpleJsonGrafanaPlugin.Request
+namespace Graylog2Grafana.Models.SimpleJsonGrafanaPlugin.Request
 {
     public class AnnotationsRequest
     {

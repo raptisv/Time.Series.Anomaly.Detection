@@ -1,10 +1,10 @@
-﻿using Graylog.Grafana.Models.SimpleJsonGrafanaPlugin.Request;
-using Graylog2Grafana.Abstractions;
+﻿using Graylog2Grafana.Abstractions;
+using Graylog2Grafana.Models.SimpleJsonGrafanaPlugin.Request;
 using Microsoft.AspNetCore.Mvc;
 using Serilog;
 using System.Threading.Tasks;
 
-namespace Graylog.Grafana.Web.Controllers
+namespace Graylog2Grafana.Web.Controllers
 {
     public class SimpleJsonGrafanaPluginController : Controller
     {

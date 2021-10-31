@@ -1,6 +1,7 @@
-﻿using Graylog.Grafana.Models.Graylog;
-using Graylog2Grafana.Abstractions;
+﻿using Graylog2Grafana.Abstractions;
+using Graylog2Grafana.Models;
 using Graylog2Grafana.Models.Configuration;
+using Graylog2Grafana.Models.Graylog;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
@@ -11,37 +12,30 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
-using System.Web;
-using Time.Series.Anomaly.Detection.Abstractions;
 using Time.Series.Anomaly.Detection.Data.Abstractions;
 using Time.Series.Anomaly.Detection.Data.Models.Enums;
 using Time.Series.Anomaly.Detection.Models;
 
-namespace Graylog.Grafana.Services
+namespace Graylog2Grafana.Services
 {
+
     public class GraylogDataService : IDataService
     {
         private readonly IServiceProvider _serviceProvider;
-        private readonly INotificationService _notificationService;
-        private readonly IAnomalyDetectionService _anomalyDetectionService;
-        private readonly IOptions<GraylogConfiguration> _graylogConfiguration;
+        private readonly IMonitorSeriesDataAnomalyDetectionService _dataAnomalyDetectionService; 
         private readonly IOptions<DetectionConfiguration> _detectionConfiguration;
         private readonly HttpClient _httpClient;
 
         public GraylogDataService(
             IServiceProvider serviceProvider,
             IHttpClientFactory clientFactory,
-            INotificationService notificationService,
-            IAnomalyDetectionService anomalyDetectionService,
-            IOptions<GraylogConfiguration> graylogConfiguration, 
+            IMonitorSeriesDataAnomalyDetectionService dataAnomalyDetectionService,
             IOptions<DetectionConfiguration> detectionConfiguration)
         {
             _serviceProvider = serviceProvider;
-            _httpClient = clientFactory.CreateClient("Graylog");
-            _notificationService = notificationService;
-            _anomalyDetectionService = anomalyDetectionService;
-            _graylogConfiguration = graylogConfiguration;
+            _dataAnomalyDetectionService = dataAnomalyDetectionService;
             _detectionConfiguration = detectionConfiguration;
+            _httpClient = clientFactory.CreateClient("Graylog");
         }
 
         public async Task LoadDataAsync()
@@ -55,7 +49,9 @@ namespace Graylog.Grafana.Services
 
                 foreach (var monitorSeriesItem in monitorSeriesItems)
                 {
-                    var minutesBack = await GetMinutesToLookBack(monitorSeriesDataService, monitorSeriesItem.ID);
+                    var monitorSeriesLatestRecord = (await monitorSeriesDataService.GetLatestAsync(1, monitorSeriesItem.ID)).SingleOrDefault();
+
+                    var minutesBack = GetMinutesToLookBack(monitorSeriesLatestRecord?.Timestamp, monitorSeriesItem.MinuteDurationForAnomalyDetection);
 
                     DateTime dtFrom = DateTime.UtcNow.AddMinutes(-minutesBack - 1); // Get 1 minute older just for safety
                     dtFrom = new DateTime(dtFrom.Year, dtFrom.Month, dtFrom.Day, dtFrom.Hour, dtFrom.Minute, 0, 0);
@@ -87,36 +83,102 @@ namespace Graylog.Grafana.Services
             }
         }
 
-        private async Task<int> GetMinutesToLookBack(IMonitorSeriesDataService monitorSeriesDataService, long monitorPerMinuteItemID)
+        public async Task<List<DataAnomalyDetectionResult>> DetectAndPersistAnomaliesAsync()
         {
-            var monitorPerMinuteDataLastResult = (await monitorSeriesDataService.GetLatestAsync(1, new List<long>() { monitorPerMinuteItemID })).SingleOrDefault();
-
-            // Get diff in minutes
-            var minutesLastValueBefore = (int)(DateTime.UtcNow - (monitorPerMinuteDataLastResult?.Timestamp ?? DateTime.UtcNow.AddMinutes(-60))).TotalMinutes;
-
-            if (minutesLastValueBefore < 0)
+            using (IServiceScope scope = _serviceProvider.CreateScope())
             {
-                minutesLastValueBefore = 0;
+                IMonitorSeriesService monitorSeriesService = scope.ServiceProvider.GetRequiredService<IMonitorSeriesService>();
+                IMonitorSeriesDataService monitorSeriesDataService = scope.ServiceProvider.GetRequiredService<IMonitorSeriesDataService>();
+                IAnomalyDetectionDataService anomalyDetectionRecordService = scope.ServiceProvider.GetRequiredService<IAnomalyDetectionDataService>();
+
+                List<DataAnomalyDetectionResult> result = new List<DataAnomalyDetectionResult>();
+
+                var allMonitors = await monitorSeriesService.GetAllAsync();
+
+                foreach (var monitorSeries in allMonitors)
+                {
+                    // Check if another alert for series is very close
+                    if (monitorSeries.DoNotAlertAgainWithinMinutes.HasValue)
+                    {
+                        var latestDetectionForSeries = await anomalyDetectionRecordService.GetLatestForSeriesAsync(monitorSeries.ID);
+                        if (latestDetectionForSeries != null &&
+                            (DateTime.UtcNow - latestDetectionForSeries.Timestamp).TotalMinutes < Math.Abs(monitorSeries.DoNotAlertAgainWithinMinutes.Value))
+                        {
+                            continue;
+                        }
+                    }
+
+                    var stepsBack = monitorSeries.MinuteDurationForAnomalyDetection + Math.Abs(_detectionConfiguration.Value.DetectionDelayInMinutes);
+
+                    var monitorSeriesData = (await monitorSeriesDataService.GetLatestAsync(stepsBack, monitorSeries.ID))
+                        .OrderBy(x => x.Timestamp)
+                        .ToList();
+
+                    var anomalyDetected = _dataAnomalyDetectionService.DetectAnomaliesAsync(monitorSeries, monitorSeriesData);
+
+                    if (anomalyDetected?.AnomalyDetectedAtLatestTimeStamp ?? false)
+                    {
+                        result.Add(anomalyDetected);
+
+                        var percentage = anomalyDetected.PrelastDataInSeries > 0
+                                ? Math.Abs(anomalyDetected.LastDataInSeries - anomalyDetected.PrelastDataInSeries) / anomalyDetected.PrelastDataInSeries * 100.0
+                                : 100;
+
+                        var comment = anomalyDetected.MonitorType == MonitorType.Downwards
+                            ? $"{(int)percentage}% downwards spike on {monitorSeries.Name} ({anomalyDetected.PrelastDataInSeries} => {anomalyDetected.LastDataInSeries})"
+                            : $"{(int)percentage}% upwards spike on {monitorSeries.Name} ({anomalyDetected.PrelastDataInSeries} => {anomalyDetected.LastDataInSeries})";
+
+                        // Persist
+
+                        await anomalyDetectionRecordService.CreateIfNotAlreadyExistsAsync(
+                            monitorSeries.ID,
+                            anomalyDetected.TimestampDetected,
+                            anomalyDetected.MonitorType,
+                            comment);
+                    }
+                }
+
+                return result;
             }
-
-            // Add some minutes just to be sure
-            minutesLastValueBefore += 5;
-
-            // Make sure we do not exceed 1 hour
-            if (minutesLastValueBefore > 60)
-            {
-                minutesLastValueBefore = 60;
-            }
-
-            return minutesLastValueBefore;
         }
 
-        public async Task<Dictionary<long, int>> GraylogQueryHistogramAsync(
+        private int GetMinutesToLookBack(
+            DateTime? monitorSeriesLatestRecordTimeStamp,
+            int minuteDurationForAnomalyDetection,
+            int extraCap = 5)
+        {
+            if (monitorSeriesLatestRecordTimeStamp.HasValue)
+            {
+                var minutesLastValueBefore = (int)(DateTime.UtcNow - monitorSeriesLatestRecordTimeStamp.Value).TotalMinutes;
+
+                if (minutesLastValueBefore < 0)
+                {
+                    minutesLastValueBefore = 0;
+                }
+
+                minutesLastValueBefore += extraCap;
+
+                // Make sure we do not exceed the minuteDurationForAnomalyDetection (plus any cap)
+                if (minutesLastValueBefore > minuteDurationForAnomalyDetection + extraCap)
+                {
+                    minutesLastValueBefore = minuteDurationForAnomalyDetection + extraCap;
+                }
+
+                return minutesLastValueBefore;
+            }
+            else
+            {
+                // This will be executed only the first time that the series is empty
+                return Math.Abs(minuteDurationForAnomalyDetection) + extraCap;
+            }
+        }
+
+        private async Task<Dictionary<long, int>> GraylogQueryHistogramAsync(
           string query,
           KnownIntervals interval,
           DateTime dtFrom,
           DateTime dtTo)
-        {          
+        {
             string timestampFilter = $@" timestamp:[""{dtFrom:yyyy-MM-dd HH:mm:00.000}"" TO ""{dtTo:yyyy-MM-dd HH:mm:00.000}""] ";
 
             query += $" {(string.IsNullOrWhiteSpace(query) ? string.Empty : "AND")} {timestampFilter}";
@@ -146,109 +208,6 @@ namespace Graylog.Grafana.Services
                     string result = await content.ReadAsStringAsync();
 
                     return JsonConvert.DeserializeAnonymousType(result, new { results = new Dictionary<long, int>() }).results;
-                }
-            }
-        }
-
-        public async Task DetectPersistAndAlertAsync()
-        {
-            using (IServiceScope scope = _serviceProvider.CreateScope())
-            {
-                IMonitorSeriesService monitorSeriesService = scope.ServiceProvider.GetRequiredService<IMonitorSeriesService>();
-                IMonitorSeriesDataService monitorSeriesDataService = scope.ServiceProvider.GetRequiredService<IMonitorSeriesDataService>();
-                IAnomalyDetectionDataService anomalyDetectionRecordService = scope.ServiceProvider.GetRequiredService<IAnomalyDetectionDataService>();
-
-                var allMonitors = await monitorSeriesService.GetAllAsync();
-
-                foreach (var currentMonitor in allMonitors)
-                {
-                    var stepsBack = currentMonitor.MinuteDurationForAnomalyDetection + Math.Abs(_detectionConfiguration.Value.DelayInMinutes);
-
-                    var monitorSeriesData = (await monitorSeriesDataService.GetLatestAsync(stepsBack, currentMonitor.ID))
-                        .OrderBy(x => x.Timestamp)
-                        .ToList();
-
-                    // Remove current minute from the calculations as it is probably still in progress of gathering data
-                    monitorSeriesData.RemoveAll(x => Utils.TruncateToMinute(x.Timestamp) == Utils.TruncateToMinute(DateTime.UtcNow));
-
-                    // Remove some minutes in case the datasource needs some time to gather data
-                    var dateFromToIgnoreValues = Utils.TruncateToMinute(DateTime.UtcNow.AddMinutes(-Math.Abs(_detectionConfiguration.Value.DelayInMinutes)));
-                    monitorSeriesData.RemoveAll(x => Utils.TruncateToMinute(x.Timestamp) >= dateFromToIgnoreValues);
-
-                    if (monitorSeriesData.Count < 12)
-                    {
-                        continue;
-                    }
-
-                    var rowData = monitorSeriesData
-                        .Select(x => new RowDataItem() { Timestamp = Utils.GetUnixTimestamp(x.Timestamp), Count = x.Count })
-                        .OrderBy(x => x.Timestamp);
-
-                    var result = _anomalyDetectionService.Detect(rowData, currentMonitor.Sensitivity);
-
-                    // If the last minute is an anomaly, persist & notify
-                    result.Series.Reverse();
-                    var last = result.Series.First();
-                    var preLast = result.Series.Skip(1).Take(1).First();
-                    var isUpwardsSpike = last.Data > preLast.Data;
-                    var isDownwardsSpike = last.Data < preLast.Data;
-
-                    var isInAcceptedLowerLimit = true;
-                    if (currentMonitor.LowerLimitToDetect.HasValue)
-                    {
-                        isInAcceptedLowerLimit = preLast.Data > currentMonitor.LowerLimitToDetect.Value && last.Data > currentMonitor.LowerLimitToDetect.Value;
-                    }
-
-                    var isInAcceptedUpperLimit = true;
-                    if (currentMonitor.UpperLimitToDetect.HasValue)
-                    {
-                        isInAcceptedUpperLimit = preLast.Data < currentMonitor.UpperLimitToDetect.Value && last.Data < currentMonitor.UpperLimitToDetect.Value;
-                    }
-
-                    var shouldAlert =
-                        last.IsAnomaly &&
-                        last.Data != preLast.Data &&
-                        isInAcceptedLowerLimit && // Do not bother for very small values
-                        isInAcceptedUpperLimit && // Do not bother for very large values
-                        ((currentMonitor.MonitorType == MonitorType.DownwardsAndUpwards) ||
-                        (currentMonitor.MonitorType == MonitorType.Upwards && isUpwardsSpike) ||
-                        (currentMonitor.MonitorType == MonitorType.Downwards && isDownwardsSpike));
-
-                    if (shouldAlert)
-                    {
-                        var currentName = string.IsNullOrWhiteSpace(currentMonitor.Name) ? currentMonitor.Name : currentMonitor.Name;
-
-                        var timeStamp = Utils.GetDateFromUnixTimestamp(last.TimeStamp).Value;
-                        var sameAlertExists = await anomalyDetectionRecordService.ExistsByMonitorSeriesAndTimestampAsync(currentMonitor.ID, timeStamp);
-                        if (!sameAlertExists)
-                        {
-                            var percentage = preLast.Data > 0
-                                ? Math.Abs(last.Data - preLast.Data) / preLast.Data * 100.0
-                                : 100;
-
-                            var comment = isDownwardsSpike
-                                ? $"{(int)percentage}% downwards spike on {currentName} ({preLast.Data} => {last.Data})"
-                                : $"{(int)percentage}% upwards spike on {currentName} ({preLast.Data} => {last.Data})";
-
-                            var annotationType = isUpwardsSpike
-                                ? MonitorType.Upwards
-                                : MonitorType.Downwards;
-
-                            // Persist
-
-                            await anomalyDetectionRecordService.PostAsync(currentMonitor.ID, timeStamp, annotationType, comment);
-
-                            // Notify
-
-                            var graylogUrl = $"{_graylogConfiguration.Value.Url}/search?q={HttpUtility.UrlEncode(currentMonitor.Query)}&rangetype=absolute&from={DateTime.UtcNow.AddMinutes(-10).ToString("yyyy-MM-ddTHH:mm:ss.fffZ")}&to={DateTime.UtcNow.AddMinutes(10).ToString("yyyy-MM-ddTHH:mm:ss.fffZ")}";
-
-                            var message = isDownwardsSpike
-                                ? $"Downwards spike on *<{graylogUrl}|{currentName}>* ({preLast.Data} => {last.Data})"
-                                : $"Upwards spike on *<{graylogUrl}|{currentName}>* ({preLast.Data} => {last.Data})";
-
-                            await _notificationService?.NotifyAsync(message);
-                        }
-                    }
                 }
             }
         }

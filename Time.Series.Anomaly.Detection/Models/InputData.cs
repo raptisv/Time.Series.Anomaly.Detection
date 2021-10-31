@@ -1,4 +1,5 @@
 ﻿using Microsoft.ML.Data;
+using System;
 
 namespace Time.Series.Anomaly.Detection.Models
 {
@@ -9,5 +10,7 @@ namespace Time.Series.Anomaly.Detection.Models
 
         [LoadColumn(1)]
         public double v { get; set; }
+
+        public DateTime Timestamp { get; set; }
     }
 }

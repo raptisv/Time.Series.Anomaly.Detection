@@ -66,6 +66,7 @@ namespace Time.Series.Anomaly.Detection.Data.Services
             _dbContext.Entry(model).Property(x => x.UpperLimitToDetect).IsModified = true;
             _dbContext.Entry(model).Property(x => x.LowerLimitToDetect).IsModified = true;
             _dbContext.Entry(model).Property(x => x.MinuteDurationForAnomalyDetection).IsModified = true;
+            _dbContext.Entry(model).Property(x => x.DoNotAlertAgainWithinMinutes).IsModified = true;
 
             // Delete previous data for the series
             var oldItems = _dbContext.MonitorSeriesData.Where(u => u.MonitorSeriesID == model.ID);

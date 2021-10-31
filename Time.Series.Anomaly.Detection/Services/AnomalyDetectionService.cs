@@ -24,7 +24,13 @@ namespace Time.Series.Anomaly.Detection.Services
             double threshold = 0.1,
             bool detectPeriod = false)
         {
-            var feedData = new List<InputData>(rowData.Select(x => new InputData() { t = x.Timestamp.ToString(), v = x.Count })).OrderBy(x => x.t).ToList();
+            var feedData = new List<InputData>(rowData.Select(x => new InputData() 
+            { 
+                t = Utils.GetUnixTimestamp(x.Timestamp).ToString(), 
+                v = x.Count, 
+                Timestamp = x.Timestamp 
+            }))
+            .OrderBy(x => x.t).ToList();
 
             MLContext mlContext = new MLContext(DateTime.UtcNow.Millisecond);
 
@@ -68,13 +74,13 @@ namespace Time.Series.Anomaly.Detection.Services
 
             foreach (var p in predictions)
             {
-                string timeStamp = rowData.ElementAt(index).t;
+                var timeStamp = rowData.ElementAt(index).Timestamp;
                 double data = rowData.ElementAt(index).v;
                 double upper = p.Prediction[5];
                 double lower = p.Prediction[6];
                 bool isAnomaly = p.Prediction[0] == 1;
 
-                result.Add(new PredictionResult(index, data, timeStamp, upper, lower, isAnomaly));
+                result.Add(new PredictionResult(data, timeStamp, upper, lower, isAnomaly));
 
                 ++index;
             }

@@ -1,10 +1,12 @@
-﻿using System.Threading.Tasks;
+﻿using Graylog2Grafana.Models;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Graylog2Grafana.Abstractions
 {
     public interface IDataService
     {
         Task LoadDataAsync();
-        Task DetectPersistAndAlertAsync();
+        Task<List<DataAnomalyDetectionResult>> DetectAndPersistAnomaliesAsync();
     }
 }

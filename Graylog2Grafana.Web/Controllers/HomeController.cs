@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using Time.Series.Anomaly.Detection.Data.Abstractions;
 
-namespace Graylog.Grafana.Web.Controllers
+namespace Graylog2Grafana.Web.Controllers
 {
     public class HomeController : Controller
     {

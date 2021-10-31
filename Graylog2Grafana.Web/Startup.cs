@@ -1,6 +1,6 @@
-using Graylog.Grafana.Services;
 using Graylog2Grafana.Abstractions;
 using Graylog2Grafana.Models.Configuration;
+using Graylog2Grafana.Services;
 using Graylog2Grafana.Workers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -21,7 +21,7 @@ using Time.Series.Anomaly.Detection.Data.Models;
 using Time.Series.Anomaly.Detection.Data.Services;
 using Time.Series.Anomaly.Detection.Services;
 
-namespace Graylog.Grafana.Web
+namespace Graylog2Grafana.Web
 {
     public class Startup
     {
@@ -69,6 +69,7 @@ namespace Graylog.Grafana.Web
             .AddSingleton<IDataService, GraylogDataService>()
             .AddSingleton<INotificationService, SlackNotificationService>()
             .AddSingleton<IAnomalyDetectionService, AnomalyDetectionService>()
+            .AddSingleton<IMonitorSeriesDataAnomalyDetectionService, MonitorSeriesDataAnomalyDetectionService>()
             // Scoped
             .AddScoped<IMonitorSeriesService, MonitorSeriesService>()
             .AddScoped<IMonitorSeriesDataService, MonitorSeriesDataService>()

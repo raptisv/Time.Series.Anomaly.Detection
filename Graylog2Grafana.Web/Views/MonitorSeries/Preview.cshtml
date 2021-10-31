@@ -1,0 +1,27 @@
+﻿@using Time.Series.Anomaly.Detection.Data.Models;
+@model MonitorSeries
+@{
+    ViewData["Title"] = "Preview " + Model.Name;
+}
+
+@section Scripts{
+    <script type="text/javascript">
+        const monitorSeriesId = @Model.ID;
+    </script>
+    <script src="~/js/monitor-series-preview.js" asp-append-version="true"></script>
+}
+
+<div class="row clearfix">
+    <div class="col-12">
+        <div class="card bg-dark">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    Preview @Model.Name
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="canvas-wrapper-single-@Model.ID"></div>
+            </div>
+        </div>
+    </div>
+</div>

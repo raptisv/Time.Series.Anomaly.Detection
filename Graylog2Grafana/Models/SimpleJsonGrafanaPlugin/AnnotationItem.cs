@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace Graylog.Grafana.SimpleJsonGrafanaPlugin.Models
+namespace Graylog2Grafana.SimpleJsonGrafanaPlugin.Models
 {
     public class AnnotationItem
     {

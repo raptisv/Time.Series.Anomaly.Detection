@@ -7,7 +7,7 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace Graylog.Grafana.Web
+namespace Graylog2Grafana.Web
 {
     public class Program
     {
