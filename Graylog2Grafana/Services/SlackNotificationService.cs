@@ -22,11 +22,13 @@ namespace Graylog2Grafana.Services
 
         public SlackNotificationService(
             ILogger logger,
-            IOptions<SlackConfiguration> slackConfiguration,
+            IOptions<SlackConfiguration> slackConfiguration, 
+            IOptions<GraylogConfiguration> graylogConfiguration,
             IHttpClientFactory clientFactory)
         {
             _logger = logger;
             _slackConfiguration = slackConfiguration;
+            _graylogConfiguration = graylogConfiguration;
             _httpClient = clientFactory.CreateClient("Slack");
         }
 
