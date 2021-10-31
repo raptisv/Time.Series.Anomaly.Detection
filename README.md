@@ -43,7 +43,9 @@ Additionaly, it is often not easy to predict in advance, all the metrics you nee
 ![alt text](https://github.com/raptisv/Time.Series.Anomaly.Detection/blob/main/Graylog2Grafana.Web/wwwroot/img/Graylog2Grafana_2.png "")
 
 # Anomaly detection 
-Anomaly/spike detection is executed in the background. We usually care about realtime data, that is why **it will produce an alert only if an anomaly was detected in the last minute**. 
+Anomaly/spike detection is executed in the background, everytime the queries refresh their data. We usually care about realtime data, that is why **it will produce an alert only if an anomaly was detected in the last minute**. 
+
+> The library used for anomaly detection is ML.NET. You wil find and excellent guide of how to start with ML.NET time series in this [documentation](https://docs.microsoft.com/en-us/dotnet/machine-learning/tutorials/phone-calls-anomaly-detection).
 
 In order to see the spikes detected in Grafana, we have to setup **Dashboard annotations**. 
 Go to the `Dashboard settings` and add a new `Annotation query` with the following settings
@@ -51,7 +53,7 @@ Go to the `Dashboard settings` and add a new `Annotation query` with the followi
 2. Set Data source to `Graylog2Grafana`
 3. Set the query to `Downwards#all_logs` <- This is a convention explained below
 
-The query field on Step 3. is a convention we have to make. The format here is `{MonitorType}#{query_name_a}#{query_name_b}` (notice the `#` separator). Available values for `MonitorType` are `Downwards` and `Upwards` depending on the type of spikes we wish to see in the dashboard. After the type we include the Graylog custom query names we wish to see in the dashboard. For example the `Downwards#query_a#query_b#query_c` means that we want to see all downwards spikes for custom Graylog queries *query_a*, *query_b* and *query_c*.
+The query field on Step 3. is a convention we have to make. The format here is `{MonitorType}#{query_name_a}#{query_name_b}` (notice the `#` separator). Available values for `MonitorType` are `Downwards` and `Upwards` depending on the type of spikes we wish to see in the dashboard. After the type we include the Graylog custom query names we wish to see in the dashboard. For example the `Downwards#query_a#query_b#query_c` means that we want to see all downwards spikes for custom Graylog queries *query_a*, *query_b* and *query_c*. If you wish to monitor all your queries you may set a `*` like `Downwards#*`.
 
 ![alt text](https://github.com/raptisv/Time.Series.Anomaly.Detection/blob/main/Graylog2Grafana.Web/wwwroot/img/Graylog2Grafana_1.png "")
 
