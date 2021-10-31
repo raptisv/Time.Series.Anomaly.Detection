@@ -14,7 +14,7 @@
         <div class="card bg-dark">
             <div class="card-header">
                 <h5 class="mb-0">
-                    @(isEdit ? "Edit" : "New")  monitor query
+                    @(isEdit ? "Edit" : "New")  monitor series
                 </h5>
             </div>
             <div class="card-body">
@@ -63,13 +63,13 @@
                             <div class="form-group">
                                 <label for="LowerLimitToDetect" class="form-label mt-4">Lower limit (optional)</label>
                                 @Html.TextBoxFor(m => m.LowerLimitToDetect, new { @class = "form-control", type = "number" })
-                                <div><small class="form-text text-muted">Below that value, you will not be alerted, regarding down-trend anomalies.</small></div>
+                                <div><small class="form-text text-muted">Below that value, you will not be alerted, regarding downwards spikes.</small></div>
                                 @Html.ValidationMessageFor(m => m.LowerLimitToDetect, "", new { @class = "text-danger" })
                             </div>
                             <div class="form-group">
                                 <label for="UpperLimitToDetect" class="form-label mt-4">Upper limit (optional)</label>
                                 @Html.TextBoxFor(m => m.UpperLimitToDetect, new { @class = "form-control", type = "number" })
-                                <div><small class="form-text text-muted">Above that value, you will not be alerted, regarding up-trend anomalies.</small></div>
+                                <div><small class="form-text text-muted">Above that value, you will not be alerted, regarding upwards spikes.</small></div>
                                 @Html.ValidationMessageFor(m => m.UpperLimitToDetect, "", new { @class = "text-danger" })
                             </div>
                             <div class="form-group">

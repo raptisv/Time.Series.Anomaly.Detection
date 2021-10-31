@@ -11,17 +11,17 @@
     <script src="~/js/monitor-series-preview.js" asp-append-version="true"></script>
 }
 
-<div class="row clearfix">
-    <div class="col-12">
-        <div class="card bg-dark">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    Preview @Model.Name
-                </h5>
-            </div>
-            <div class="card-body">
-                <div id="canvas-wrapper-single-@Model.ID"></div>
-            </div>
-        </div>
-    </div>
+<div>
+    <h4>
+        Preview
+        <small class="text-muted">@Model.Name</small>
+    </h4>
 </div>
+<div>
+    <h5>
+        Query
+        <small class="text-muted">@Model.Query</small>
+    </h5>
+</div>
+
+<div id="canvas-wrapper-single-@Model.ID"></div>

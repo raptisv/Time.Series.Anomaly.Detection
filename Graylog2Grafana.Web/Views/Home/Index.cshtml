@@ -19,14 +19,13 @@
             <h4>
                 Monitor type
                 <small class="text-muted">@type.Text</small>
-              </h4>
+            </h4>
         </div>
         <table class="table table-hover mt-3">
             <thead>
                 <tr>
                     <th scope="col">Name</th>
                     <th scope="col">Description</th>
-                    <th scope="col">Query</th>
                     <th scope="col" title="The amount of latest minutes to be used in anomaly detection">Steps</th>
                     <th scope="col">Sensitivity</th>
                     <th scope="col" title="The value that below it, you will not be notified if any anomaly is detected">Lower limit</th>
@@ -41,9 +40,8 @@
                 @foreach (var item in Model.Where(x => ((int)x.MonitorType).ToString() == type.Value))
                 {
                     <tr>
-                        <th scope="row">@item.Name</th>
+                        <th scope="row" style="cursor:pointer" title="@item.Query">@item.Name</th>
                         <td>@item.Description</td>
-                        <td style="font-family:Consolas">@item.Query</td>
                         <td>@item.MinuteDurationForAnomalyDetection</td>
                         <td>@item.Sensitivity</td>
                         <td>@item.LowerLimitToDetect</td>
