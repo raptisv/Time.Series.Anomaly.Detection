@@ -45,7 +45,7 @@ Additionaly, it is often not easy to predict in advance, all the metrics you nee
 # Anomaly detection 
 Anomaly/spike detection is executed in the background, everytime the queries refresh their data. We usually care about realtime data, that is why **it will produce an alert only if an anomaly was detected in the last minute**. 
 
-> The library used for anomaly detection is ML.NET. You wil find and excellent guide of how to start with ML.NET time series in this [documentation](https://docs.microsoft.com/en-us/dotnet/machine-learning/tutorials/phone-calls-anomaly-detection).
+> The library used for anomaly detection is ML.NET. You will find and excellent guide of how to start with ML.NET time series in this [documentation](https://docs.microsoft.com/en-us/dotnet/machine-learning/tutorials/phone-calls-anomaly-detection).
 
 In order to see the spikes detected in Grafana, we have to setup **Dashboard annotations**. 
 Go to the `Dashboard settings` and add a new `Annotation query` with the following settings
