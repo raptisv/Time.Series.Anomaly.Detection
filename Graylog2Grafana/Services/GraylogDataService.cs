@@ -199,7 +199,15 @@ namespace Graylog2Grafana.Services
         }
         private async Task<bool> GraylogSupportsHistogramEndpointAsync()
         {
-            using (HttpResponseMessage response = await _httpClient.GetAsync($"/api/search/universal/relative/histogram?query=*&interval=day"))
+            string query = $@"1 AND timestamp:[""{DateTime.UtcNow.AddMinutes(-1):yyyy-MM-dd HH:mm:00.000}"" TO ""{DateTime.UtcNow:yyyy-MM-dd HH:mm:00.000}""] ";
+
+            var parameters = new NameValueCollection
+            {
+                {"query", query},
+                {"interval", KnownIntervals.minute.ToString()}
+            };
+
+            using (HttpResponseMessage response = await _httpClient.GetAsync($"/api/search/universal/relative/histogram{AttachParameters(parameters)}"))
             {
                 if (response.IsSuccessStatusCode)
                 {
@@ -230,23 +238,12 @@ namespace Graylog2Grafana.Services
             query += $" {(string.IsNullOrWhiteSpace(query) ? string.Empty : "AND")} {timestampFilter}";
 
             var parameters = new NameValueCollection
-                {
-                    {"query", query},
-                    {"interval", interval.ToString()}
-                };
-
-            string AttachParameters(NameValueCollection parameters)
             {
-                var stringBuilder = new StringBuilder();
-                string str = "?";
-                for (int index = 0; index < parameters.Count; ++index)
-                {
-                    stringBuilder.Append(str + parameters.AllKeys[index] + "=" + parameters[index]);
-                    str = "&";
-                }
-                return stringBuilder.ToString();
-            }
+                {"query", query},
+                {"interval", interval.ToString()}
+            };
 
+            
             using (HttpResponseMessage response = await _httpClient.GetAsync($"/api/search/universal/relative/histogram{AttachParameters(parameters)}"))
             {
                 response.EnsureSuccessStatusCode();
@@ -258,6 +255,18 @@ namespace Graylog2Grafana.Services
                     return JsonConvert.DeserializeAnonymousType(strResult, new { results = new Dictionary<long, int>() }).results;
                 }
             }
+        }
+
+        private string AttachParameters(NameValueCollection parameters)
+        {
+            var stringBuilder = new StringBuilder();
+            string str = "?";
+            for (int index = 0; index < parameters.Count; ++index)
+            {
+                stringBuilder.Append(str + parameters.AllKeys[index] + "=" + parameters[index]);
+                str = "&";
+            }
+            return stringBuilder.ToString();
         }
 
         /// <summary>
@@ -274,6 +283,11 @@ namespace Graylog2Grafana.Services
             var searchCreateRequest = new SearchCreateRequest(searchId, query, $"{dtFrom:yyyy-MM-ddTHH:mm:00.000}", $"{dtTo:yyyy-MM-ddTHH:mm:00.000}", interval);
 
             var searchCreateRequestPostBody = new StringContent(JsonConvert.SerializeObject(searchCreateRequest), Encoding.UTF8, "application/json");
+
+            if (!_httpClient.DefaultRequestHeaders.Any(x => x.Key == "X-Requested-By"))
+            {
+                _httpClient.DefaultRequestHeaders.Add("X-Requested-By", "Graylog2Grafana");
+            }
 
             using (HttpResponseMessage searchCreateResponse = await _httpClient.PostAsync($"/api/views/search", searchCreateRequestPostBody))
             {
