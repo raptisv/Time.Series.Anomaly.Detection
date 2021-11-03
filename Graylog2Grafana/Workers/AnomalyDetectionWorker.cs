@@ -27,7 +27,8 @@ namespace Graylog2Grafana.Workers
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            await Task.Delay(5000).ConfigureAwait(false);
+            // Delay 1 minute before starting anomaly detection
+            await Task.Delay(60000).ConfigureAwait(false);
 
             while (!stoppingToken.IsCancellationRequested)
             {
