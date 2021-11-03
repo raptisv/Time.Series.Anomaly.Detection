@@ -39,7 +39,7 @@ namespace Graylog2Grafana.Web
                       .CreateLogger();
 
             services
-            .Configure<DetectionConfiguration>(Configuration.GetSection("Detection"))
+            .Configure<DatasetConfiguration>(Configuration.GetSection("Dataset"))
             .Configure<GraylogConfiguration>(Configuration.GetSection("Graylog"))
             .Configure<SlackConfiguration>(Configuration.GetSection("Slack"));
 
@@ -76,6 +76,7 @@ namespace Graylog2Grafana.Web
             .AddScoped<IAnomalyDetectionDataService, AnomalyDetectionDataService>()
             .AddScoped<IGrafanaSimpleJsonPluginService, GrafanaSimpleJsonPluginService>()
             // Hosted services
+            .AddHostedService<LoadDataWorker>()
             .AddHostedService<AnomalyDetectionWorker>();
 
             services.AddHttpClient("Graylog", c =>

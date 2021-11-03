@@ -28,7 +28,7 @@ namespace Graylog2Grafana.Services
         private readonly ILogger _logger;
         private readonly IServiceProvider _serviceProvider;
         private readonly IMonitorSeriesDataAnomalyDetectionService _dataAnomalyDetectionService;
-        private readonly IOptions<DetectionConfiguration> _detectionConfiguration;
+        private readonly IOptions<DatasetConfiguration> _detectionConfiguration;
         private readonly HttpClient _httpClient;
         private static bool? _graylogVersionSupportsHistogramEndpoint = null;
 
@@ -37,7 +37,7 @@ namespace Graylog2Grafana.Services
             IServiceProvider serviceProvider,
             IHttpClientFactory clientFactory,
             IMonitorSeriesDataAnomalyDetectionService dataAnomalyDetectionService,
-            IOptions<DetectionConfiguration> detectionConfiguration)
+            IOptions<DatasetConfiguration> detectionConfiguration)
         {
             _logger = logger;
             _serviceProvider = serviceProvider;
@@ -140,8 +140,6 @@ namespace Graylog2Grafana.Services
 
                     if (anomalyDetected?.AnomalyDetectedAtLatestTimeStamp ?? false)
                     {
-                        result.Add(anomalyDetected);
-
                         var percentage = anomalyDetected.PrelastDataInSeries > 0
                                 ? Math.Abs(anomalyDetected.LastDataInSeries - anomalyDetected.PrelastDataInSeries) / anomalyDetected.PrelastDataInSeries * 100.0
                                 : 100;
@@ -152,11 +150,16 @@ namespace Graylog2Grafana.Services
 
                         // Persist
 
-                        await anomalyDetectionRecordService.CreateIfNotAlreadyExistsAsync(
+                        var alertCreated = await anomalyDetectionRecordService.CreateIfNotAlreadyExistsAsync(
                             monitorSeries.ID,
                             anomalyDetected.TimestampDetected,
                             anomalyDetected.MonitorType,
                             comment);
+
+                        if (alertCreated)
+                        {
+                            result.Add(anomalyDetected);
+                        }
                     }
                 }
 

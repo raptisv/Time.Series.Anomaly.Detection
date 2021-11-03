@@ -15,11 +15,11 @@ namespace Graylog2Grafana.Services
     public class MonitorSeriesDataAnomalyDetectionService : IMonitorSeriesDataAnomalyDetectionService
     {
         private readonly IAnomalyDetectionService _anomalyDetectionService;
-        private readonly IOptions<DetectionConfiguration> _detectionConfiguration;
+        private readonly IOptions<DatasetConfiguration> _detectionConfiguration;
 
         public MonitorSeriesDataAnomalyDetectionService(
             IAnomalyDetectionService anomalyDetectionService, 
-            IOptions<DetectionConfiguration> detectionConfiguration)
+            IOptions<DatasetConfiguration> detectionConfiguration)
         {
             _anomalyDetectionService = anomalyDetectionService;
             _detectionConfiguration = detectionConfiguration;

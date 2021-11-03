@@ -1,28 +1,30 @@
 ﻿using Graylog2Grafana.Abstractions;
+using Graylog2Grafana.Models.Configuration;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Serilog;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Graylog2Grafana.Workers
 {
-    public class AnomalyDetectionWorker : BackgroundService
+    public class LoadDataWorker : BackgroundService
     {
         private readonly ILogger _logger;
         private readonly IEnumerable<IDataService> _dataServices;
-        private readonly INotificationService _notificationService;
+        private readonly IOptions<DatasetConfiguration> _detectionConfiguration;
 
-        public AnomalyDetectionWorker(
+        public LoadDataWorker(
             ILogger logger,
             IEnumerable<IDataService> dataServices,
+            IOptions<DatasetConfiguration> detectionConfiguration, 
             INotificationService notificationService)
         {
             _logger = logger;
             _dataServices = dataServices;
-            _notificationService = notificationService;
+            _detectionConfiguration = detectionConfiguration;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -36,28 +38,20 @@ namespace Graylog2Grafana.Workers
                     // Load data from all registered data services
                     foreach(var dataService in _dataServices)
                     {
-                        // Detect & persist
-                        var anomalyDetectionResult = await dataService.DetectAndPersistAnomaliesAsync();
-
-                        // Alert if needed
-                        foreach(var anomalyDetected in anomalyDetectionResult.Where(x => x.AnomalyDetectedAtLatestTimeStamp))
-                        {
-                            await _notificationService.NotifyAsync(
-                                anomalyDetected.MonitorSeries, 
-                                anomalyDetected.MonitorType,
-                                anomalyDetected.LastDataInSeries,
-                                anomalyDetected.PrelastDataInSeries);
-                        }
+                        // Fetch data
+                        await dataService.LoadDataAsync();
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.Error(ex, $"Error on {nameof(AnomalyDetectionWorker)}: {ex.Message}");
+                    _logger.Error(ex, $"Error on {nameof(LoadDataWorker)}: {ex.Message}");
                 }
                 finally
                 {
-                    // Try detect and notify every 15 seconds
-                    await Task.Delay(15000);
+                    // Sanity check, no point in setting this less that 10 seconds
+                    var intervalMs = Math.Max(_detectionConfiguration.Value.LoadDataIntervalMs, 10000); 
+
+                    await Task.Delay(intervalMs);
                 }
             }
         }

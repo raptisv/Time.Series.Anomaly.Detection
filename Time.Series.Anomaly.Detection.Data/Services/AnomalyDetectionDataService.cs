@@ -18,7 +18,7 @@ namespace Time.Series.Anomaly.Detection.Data.Services
             _dbContext = dbContext;
         }
 
-        public async Task CreateIfNotAlreadyExistsAsync(long monitorSeriesID, DateTime timeStamp, MonitorType type, string comments)
+        public async Task<bool> CreateIfNotAlreadyExistsAsync(long monitorSeriesID, DateTime timeStamp, MonitorType type, string comments)
         {
             var sameAlertExists = await ExistsByMonitorSeriesAndTimestampAsync(monitorSeriesID, timeStamp);
 
@@ -34,7 +34,11 @@ namespace Time.Series.Anomaly.Detection.Data.Services
                 });
 
                 await _dbContext.SaveChangesAsync();
+
+                return true;
             }
+
+            return false;
         }
 
         public async Task<bool> ExistsByMonitorSeriesAndTimestampAsync(long monitorSeriesID, DateTime timestamp)
@@ -43,6 +47,14 @@ namespace Time.Series.Anomaly.Detection.Data.Services
                             .Where(x => x.MonitorSeriesID == monitorSeriesID && x.Timestamp == timestamp)
                             .ToListAsync())
                             .Any();
+        }
+
+        public async Task<List<AnomalyDetectionData>> GetInRangeAsync(List<long> monitorSeriesIds, DateTime from, DateTime to)
+        {
+            return await _dbContext.AnomalyDetectionData
+                            .Include(x => x.MonitorSeries)
+                            .Where(x => monitorSeriesIds.Contains(x.MonitorSeriesID) && x.Timestamp >= from && x.Timestamp <= to)
+                            .ToListAsync();
         }
 
         public async Task<List<AnomalyDetectionData>> GetInRangeAsync(MonitorType type, DateTime from, DateTime to)
