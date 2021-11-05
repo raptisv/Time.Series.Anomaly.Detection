@@ -10,9 +10,7 @@ using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
-using System.Globalization;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
@@ -22,7 +20,6 @@ using Time.Series.Anomaly.Detection.Models;
 
 namespace Graylog2Grafana.Services
 {
-
     public class GraylogDataService : IDataService
     {
         private readonly ILogger _logger;
@@ -30,7 +27,7 @@ namespace Graylog2Grafana.Services
         private readonly IMonitorSeriesDataAnomalyDetectionService _dataAnomalyDetectionService;
         private readonly IOptions<DatasetConfiguration> _detectionConfiguration;
         private readonly HttpClient _httpClient;
-        private static bool? _graylogVersionSupportsHistogramEndpoint = null;
+        private static bool? _graylogVersionSupportsViewSearchEndpoint = null;
 
         public GraylogDataService(
             ILogger logger,
@@ -48,6 +45,11 @@ namespace Graylog2Grafana.Services
 
         public async Task LoadDataAsync()
         {
+            if (!_graylogVersionSupportsViewSearchEndpoint.HasValue)
+            {
+                _graylogVersionSupportsViewSearchEndpoint = await GraylogSupportsViewSearchEndpointAsync();
+            }
+
             using (IServiceScope scope = _serviceProvider.CreateScope())
             {
                 IMonitorSeriesService monitorSeriesService = scope.ServiceProvider.GetRequiredService<IMonitorSeriesService>();
@@ -55,53 +57,52 @@ namespace Graylog2Grafana.Services
 
                 var monitorSeriesItems = await monitorSeriesService.GetAllAsync();
 
+                // 1. Gather queries to be executed
+                List<(long MonitorSeriesId, string Query, DateTime DateFrom, DateTime DateTo)> queries =
+                    new List<(long MonitorSeriesId, string Query, DateTime DateFrom, DateTime DateTo)>();
+
                 foreach (var monitorSeries in monitorSeriesItems)
                 {
                     var monitorSeriesLatestRecord = (await monitorSeriesDataService.GetLatestAsync(1, monitorSeries.ID)).SingleOrDefault();
 
                     var minutesBack = GetMinutesToLookBack(monitorSeriesLatestRecord?.Timestamp, monitorSeries.MinuteDurationForAnomalyDetection);
 
-                    DateTime dtFrom = DateTime.UtcNow.AddMinutes(-minutesBack);
-                    dtFrom = new DateTime(dtFrom.Year, dtFrom.Month, dtFrom.Day, dtFrom.Hour, dtFrom.Minute, 0, 0);
-                    DateTime dtTo = DateTime.UtcNow.AddMinutes(1);
-                    dtTo = new DateTime(dtTo.Year, dtTo.Month, dtTo.Day, dtTo.Hour, dtTo.Minute, 0, 0);
+                    DateTime dtFrom = Utils.TruncateToMinute(DateTime.UtcNow.AddMinutes(-minutesBack));
+                    DateTime dtTo = Utils.TruncateToMinute(DateTime.UtcNow.AddMinutes(1));
 
-                    try
+                    queries.Add((monitorSeries.ID, monitorSeries.Query, dtFrom, dtTo));
+                }
+
+                // 2. Execute
+                var seriesData = _graylogVersionSupportsViewSearchEndpoint.Value
+                    ? await GraylogQueryViewExecuteAsync(KnownIntervals.minute, queries)
+                    : await GraylogQueryHistogramAsync(KnownIntervals.minute, queries);
+
+                // 3. Persist
+                foreach (var query in queries.Where(q => seriesData.ContainsKey(q.MonitorSeriesId.ToString())))
+                {
+                    var data = seriesData[query.MonitorSeriesId.ToString()];
+
+                    // Fill empty timeslots in range
+                    for (var timestamp = query.DateFrom; timestamp < query.DateTo; timestamp = timestamp.AddMinutes(1))
                     {
-                        if (!_graylogVersionSupportsHistogramEndpoint.HasValue)
+                        var t = Utils.GetUnixTimestamp(timestamp);
+
+                        if (!data.ContainsKey(t))
                         {
-                            _graylogVersionSupportsHistogramEndpoint = await GraylogSupportsHistogramEndpointAsync();
-                        }
-
-                        var data = _graylogVersionSupportsHistogramEndpoint.Value
-                            ? await GraylogQueryHistogramAsync(monitorSeries.Query, KnownIntervals.minute, dtFrom, dtTo)
-                            : await GraylogQueryViewExecuteAsync(monitorSeries.Query, KnownIntervals.minute, dtFrom, dtTo);
-
-                        // Fill empty timeslots in range
-                        for (var timestamp = dtFrom; timestamp < dtTo; timestamp = timestamp.AddMinutes(1))
-                        {
-                            var t = Utils.GetUnixTimestamp(timestamp);
-
-                            if (!data.Any(x => x.Key == t))
-                            {
-                                data.Add(t, 0);
-                            }
-                        }
-
-                        foreach (var d in data)
-                        {
-                            var date = Utils.GetDateFromUnixTimestamp(d.Key.ToString()).Value;
-                            await monitorSeriesDataService.CreateOrUpdateByTimestampAsync(monitorSeries.ID, date, d.Value);
+                            data[t] = 0;
                         }
                     }
-                    catch (Exception ex)
+
+                    foreach (var d in data)
                     {
-                        _logger.Error(ex, $"Error loading Graylog data for series '{monitorSeries.Name}' | Error {ex.Message}");
+                        var date = Utils.GetDateFromUnixTimestamp(d.Key.ToString()).Value;
+                        await monitorSeriesDataService.CreateOrUpdateByTimestampAsync(query.MonitorSeriesId, date, d.Value);
                     }
                 }
 
-                // Retention policy, keep data for 3 days
-                await monitorSeriesDataService.RemoveEntriesOlderThanAsync(3);
+                // Retention policy
+                await monitorSeriesDataService.RemoveEntriesOlderThanMinutesAsync(_detectionConfiguration.Value.DataRetentionInMinutes);
             }
         }
 
@@ -197,31 +198,43 @@ namespace Graylog2Grafana.Services
                 return Math.Abs(minuteDurationForAnomalyDetection) + extraCap;
             }
         }
-        private async Task<bool> GraylogSupportsHistogramEndpointAsync()
+
+        private async Task<bool> GraylogSupportsViewSearchEndpointAsync()
         {
-            string query = $@"1 AND timestamp:[""{DateTime.UtcNow.AddMinutes(-1):yyyy-MM-dd HH:mm:00.000}"" TO ""{DateTime.UtcNow:yyyy-MM-dd HH:mm:00.000}""] ";
-
-            var parameters = new NameValueCollection
+            try
             {
-                {"query", query},
-                {"interval", KnownIntervals.minute.ToString()}
-            };
+                List<(long MonitorSeriesId, string Query, DateTime DateFrom, DateTime DateTo)> dummyQueries =
+                       new List<(long MonitorSeriesId, string Query, DateTime DateFrom, DateTime DateTo)>();
 
-            using (HttpResponseMessage response = await _httpClient.GetAsync($"/api/search/universal/relative/histogram{AttachParameters(parameters)}"))
+                // If that request succeeds, then it is supported
+                await GraylogQueryViewExecuteAsync(KnownIntervals.minute, dummyQueries);
+
+                _logger.Information($"--- The current Graylog version supports 'views/search' api endpoint ---");
+
+                return true;
+            }
+            catch (Exception ex)
             {
-                if (response.IsSuccessStatusCode)
-                {
-                    return true;
-                }
-                else if (response.StatusCode == HttpStatusCode.NotFound)
-                {
-                    return false;
-                }
-
-                throw new Exception("Could not define if Graylog version supports query histogram");
+                _logger.Warning(ex, $"--- The current Graylog version does not support 'views/search' api endpoint ---");
+                return false;
             }
         }
 
+        private async Task<Dictionary<string, Dictionary<long, int>>> GraylogQueryHistogramAsync(
+         KnownIntervals interval,
+         List<(long MonitorSeriesId, string Query, DateTime DateFrom, DateTime DateTo)> queries)
+        {
+            Dictionary<string, Dictionary<long, int>> result = new Dictionary<string, Dictionary<long, int>>();
+
+            foreach (var query in queries)
+            {
+                Dictionary<long, int> resultInner = await GraylogQueryHistogramAsync(query.Query, KnownIntervals.minute, query.DateFrom, query.DateTo);
+
+                result.Add(query.MonitorSeriesId.ToString(), resultInner);
+            }
+
+            return result;
+        }
 
         /// <summary>
         /// Supported from graylog versions older than 4
@@ -233,89 +246,108 @@ namespace Graylog2Grafana.Services
           DateTime dtFrom,
           DateTime dtTo)
         {
-            string timestampFilter = $@" timestamp:[""{dtFrom:yyyy-MM-dd HH:mm:00.000}"" TO ""{dtTo:yyyy-MM-dd HH:mm:00.000}""] ";
-
-            query += $" {(string.IsNullOrWhiteSpace(query) ? string.Empty : "AND")} {timestampFilter}";
-
-            var parameters = new NameValueCollection
+            try
             {
-                {"query", query},
-                {"interval", interval.ToString()}
-            };
+                string timestampFilter = $@" timestamp:[""{dtFrom:yyyy-MM-dd HH:mm:00.000}"" TO ""{dtTo:yyyy-MM-dd HH:mm:00.000}""] ";
 
-            
-            using (HttpResponseMessage response = await _httpClient.GetAsync($"/api/search/universal/relative/histogram{AttachParameters(parameters)}"))
-            {
-                response.EnsureSuccessStatusCode();
+                query += $" {(string.IsNullOrWhiteSpace(query) ? string.Empty : "AND")} {timestampFilter}";
 
-                using (HttpContent content = response.Content)
+                var parameters = new NameValueCollection
                 {
-                    string strResult = await content.ReadAsStringAsync();
+                    {"query", query},
+                    {"interval", interval.ToString()}
+                };
 
-                    return JsonConvert.DeserializeAnonymousType(strResult, new { results = new Dictionary<long, int>() }).results;
+                string AttachParameters(NameValueCollection parameters)
+                {
+                    var stringBuilder = new StringBuilder();
+                    string str = "?";
+                    for (int index = 0; index < parameters.Count; ++index)
+                    {
+                        stringBuilder.Append(str + parameters.AllKeys[index] + "=" + parameters[index]);
+                        str = "&";
+                    }
+                    return stringBuilder.ToString();
+                }
+
+                using (HttpResponseMessage response = await _httpClient.GetAsync($"/api/search/universal/relative/histogram{AttachParameters(parameters)}"))
+                {
+                    response.EnsureSuccessStatusCode();
+
+                    using (HttpContent content = response.Content)
+                    {
+                        string strResult = await content.ReadAsStringAsync();
+
+                        return JsonConvert.DeserializeAnonymousType(strResult, new { results = new Dictionary<long, int>() }).results;
+                    }
                 }
             }
-        }
-
-        private string AttachParameters(NameValueCollection parameters)
-        {
-            var stringBuilder = new StringBuilder();
-            string str = "?";
-            for (int index = 0; index < parameters.Count; ++index)
+            catch (Exception ex)
             {
-                stringBuilder.Append(str + parameters.AllKeys[index] + "=" + parameters[index]);
-                str = "&";
+                _logger.Error(ex, $"Error loading Graylog query '{query}' | Error {ex.Message}");
+                return new Dictionary<long, int>();
             }
-            return stringBuilder.ToString();
         }
 
         /// <summary>
         /// Supported from graylog version 3.3 and above
         /// </summary>
-        private async Task<Dictionary<long, int>> GraylogQueryViewExecuteAsync(
-          string query,
+        private async Task<Dictionary<string, Dictionary<long, int>>> GraylogQueryViewExecuteAsync(
           KnownIntervals interval,
-          DateTime dtFrom,
-          DateTime dtTo)
+          List<(long MonitorSeriesId, string Query, DateTime DateFrom, DateTime DateTo)> queries)
         {
-            var searchId = "00000000000000000000000A";
-
-            var searchCreateRequest = new SearchCreateRequest(searchId, query, $"{dtFrom:yyyy-MM-ddTHH:mm:00.000}", $"{dtTo:yyyy-MM-ddTHH:mm:00.000}", interval);
-
-            var searchCreateRequestPostBody = new StringContent(JsonConvert.SerializeObject(searchCreateRequest), Encoding.UTF8, "application/json");
-
-            if (!_httpClient.DefaultRequestHeaders.Any(x => x.Key == "X-Requested-By"))
+            try
             {
-                _httpClient.DefaultRequestHeaders.Add("X-Requested-By", "Graylog2Grafana");
-            }
+                var searchId = "000000000000000000000AAA";
 
-            using (HttpResponseMessage searchCreateResponse = await _httpClient.PostAsync($"/api/views/search", searchCreateRequestPostBody))
-            {
-                searchCreateResponse.EnsureSuccessStatusCode();
+                var searchCreateRequest = new SearchCreateRequest(searchId, queries, interval);
 
-                var searchExecuteRequestPostBody = new StringContent(JsonConvert.SerializeObject(new { }), Encoding.UTF8, "application/json");
+                var searchCreateRequestPostBody = new StringContent(JsonConvert.SerializeObject(searchCreateRequest), Encoding.UTF8, "application/json");
 
-                using (HttpResponseMessage searchExecuteResponse = await _httpClient.PostAsync($"/api/views/search/{searchId}/execute", searchExecuteRequestPostBody))
+                using (HttpResponseMessage searchCreateResponse = await _httpClient.PostAsync($"/api/views/search", searchCreateRequestPostBody))
                 {
-                    searchExecuteResponse.EnsureSuccessStatusCode();
+                    searchCreateResponse.EnsureSuccessStatusCode();
 
-                    using (HttpContent searchExecuteResponseContent = searchExecuteResponse.Content)
+                    var searchExecuteRequestPostBody = new StringContent(JsonConvert.SerializeObject(new { }), Encoding.UTF8, "application/json");
+
+                    using (HttpResponseMessage searchExecuteResponse = await _httpClient.PostAsync($"/api/views/search/{searchId}/execute", searchExecuteRequestPostBody))
                     {
-                        string strResult = await searchExecuteResponseContent.ReadAsStringAsync();
+                        searchExecuteResponse.EnsureSuccessStatusCode();
 
-                        var obj = JsonConvert.DeserializeAnonymousType(strResult, new { results = new { result_id = new { search_types = new { result_id = new { rows = new[] { new { key = new string[1], values = new[] { new { value = 0 } } } } } } } } });
-
-                        Dictionary<long, int> result = new Dictionary<long, int>();
-
-                        foreach (var item in obj.results.result_id.search_types.result_id.rows.Where(x => x.key.Any() && x.values.Any()))
+                        using (HttpContent searchExecuteResponseContent = searchExecuteResponse.Content)
                         {
-                            var dt = DateTime.ParseExact(item.key.First(), "yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
-                            result.Add(Utils.GetUnixTimestamp(dt), item.values.First().value);
-                        }
+                            string strResult = await searchExecuteResponseContent.ReadAsStringAsync();
 
-                        return result;
+                            var searchExecuteResult = JsonConvert.DeserializeObject<SearchExecuteResult>(strResult);
+
+                            if (!searchExecuteResult.Execution.Done)
+                            {
+                                throw new Exception("Graylog execution not done");
+                            }
+
+                            Dictionary<string, Dictionary<long, int>> result = new Dictionary<string, Dictionary<long, int>>();
+
+                            foreach (var searchType in searchExecuteResult.Results.ResultId.SearchTypes)
+                            {
+                                Dictionary<long, int> resultInner = new Dictionary<long, int>();
+
+                                foreach (var search in searchType.Value.Rows.Where(x => x.Key.Any() && x.Values.Any()))
+                                {
+                                    resultInner.Add(Utils.GetUnixTimestamp(search.Key.First()), search.Values.First().Value);
+                                }
+
+                                result.Add(searchType.Key, resultInner);
+                            }
+
+                            return result;
+                        }
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, $"Error loading Graylog query | Error {ex.Message}");
+                return new Dictionary<string, Dictionary<long, int>>();
             }
         }
     }

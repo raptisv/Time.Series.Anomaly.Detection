@@ -21,6 +21,6 @@ namespace Time.Series.Anomaly.Detection.Data.Abstractions
 
         Task UpdateCountAsync(long ID, int count);
 
-        Task RemoveEntriesOlderThanAsync(uint days);
+        Task RemoveEntriesOlderThanMinutesAsync(int minutes);
     }
 }

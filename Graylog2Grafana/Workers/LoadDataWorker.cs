@@ -48,8 +48,8 @@ namespace Graylog2Grafana.Workers
                 }
                 finally
                 {
-                    // Sanity check, no point in setting this less that 10 seconds
-                    var intervalMs = Math.Max(_detectionConfiguration.Value.LoadDataIntervalMs, 10000); 
+                    // Sanity check, no point in setting this less that 20 seconds
+                    var intervalMs = Math.Max(_detectionConfiguration.Value.LoadDataIntervalMs, 20000); 
 
                     await Task.Delay(intervalMs);
                 }

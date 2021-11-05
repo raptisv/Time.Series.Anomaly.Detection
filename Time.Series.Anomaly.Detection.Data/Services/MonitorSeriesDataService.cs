@@ -96,9 +96,9 @@ namespace Time.Series.Anomaly.Detection.Data.Services
             await _dbContext.SaveChangesAsync();
         }
 
-        public async Task RemoveEntriesOlderThanAsync(uint days)
+        public async Task RemoveEntriesOlderThanMinutesAsync(int minutes)
         {
-            var oldDate = DateTime.Now.AddDays(-days);
+            var oldDate = DateTime.Now.AddMinutes(-Math.Abs(minutes));
             var oldItems = _dbContext.MonitorSeriesData.Where(u => u.Timestamp < oldDate);
             _dbContext.MonitorSeriesData.RemoveRange(oldItems);
             await _dbContext.SaveChangesAsync();

@@ -85,7 +85,8 @@ namespace Graylog2Grafana.Web
                 string base64 = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{graylogConfiguration.Username}:{graylogConfiguration.Password}"));
                 c.BaseAddress = new Uri(graylogConfiguration.Url);
                 c.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", base64);
-                c.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));              
+                c.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                c.DefaultRequestHeaders.Add("X-Requested-By", "XMLHttpRequest");
             });
 
             services.AddHttpClient("Slack", c =>

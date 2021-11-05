@@ -4,5 +4,6 @@
     {
         public int LoadDataIntervalMs { get; set; }
         public int DetectionDelayInMinutes { get; set; }
+        public int DataRetentionInMinutes { get; set; }
     }
 }

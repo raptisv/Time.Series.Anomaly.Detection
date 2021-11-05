@@ -1,17 +1,18 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Graylog2Grafana.Models.Graylog.GraylogApi
 {
     public class SearchCreateRequest
     {
-        public SearchCreateRequest(string id, string query, string from, string to, KnownIntervals interval)
+        public SearchCreateRequest(string id, List<(long queryId, string Query, DateTime DateFrom, DateTime DateTo)> queries, KnownIntervals interval)
         {
             Id = id;
             Queries = new List<QueryItem>()
             {
-                new QueryItem(query, from, to, interval)
+                new QueryItem(queries, interval)
             };
         }
 
@@ -80,14 +81,14 @@ namespace Graylog2Grafana.Models.Graylog.GraylogApi
 
         public class SearchType
         {
-            public SearchType(string query, string from, string to, KnownIntervals interval)
+            public SearchType(string queryId, string query, DateTime from, DateTime to, KnownIntervals interval)
             {
-                Id = "result_id";
+                Id = queryId;
                 Timerange = new TimerangeAbsolute()
                 {
                     Type = "absolute",
-                    From = from,
-                    To = to
+                    From = $"{from:yyyy-MM-ddTHH:mm:00.000}",
+                    To = $"{to:yyyy-MM-ddTHH:mm:00.000}",
                 };
                 Query = new Query()
                 {
@@ -167,7 +168,7 @@ namespace Graylog2Grafana.Models.Graylog.GraylogApi
 
         public class QueryItem
         {
-            public QueryItem(string query, string from, string to, KnownIntervals interval)
+            public QueryItem(List<(long queryId, string Query, DateTime DateFrom, DateTime DateTo)> queries, KnownIntervals interval)
             {
                 Id = "result_id";
                 QueryData = new Query()
@@ -185,10 +186,7 @@ namespace Graylog2Grafana.Models.Graylog.GraylogApi
                     Type = "or",
                     Filters = new List<object>()
                 };
-                SearchTypes = new List<SearchType>()
-                {
-                    new SearchType(query, from, to, interval)
-                };
+                SearchTypes = queries.Select(x => new SearchType(x.queryId.ToString(), x.Query, x.DateFrom, x.DateTo, interval)).ToList();
             }
 
             [JsonProperty("id")]
