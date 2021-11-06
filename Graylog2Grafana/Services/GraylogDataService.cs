@@ -10,6 +10,7 @@ using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
@@ -28,6 +29,7 @@ namespace Graylog2Grafana.Services
         private readonly IOptions<DatasetConfiguration> _detectionConfiguration;
         private readonly HttpClient _httpClient;
         private static bool? _graylogVersionSupportsViewSearchEndpoint = null;
+        private readonly Stopwatch _sw;
 
         public GraylogDataService(
             ILogger logger,
@@ -41,6 +43,7 @@ namespace Graylog2Grafana.Services
             _dataAnomalyDetectionService = dataAnomalyDetectionService;
             _detectionConfiguration = detectionConfiguration;
             _httpClient = clientFactory.CreateClient("Graylog");
+            _sw = new Stopwatch();
         }
 
         public async Task LoadDataAsync()
@@ -137,7 +140,11 @@ namespace Graylog2Grafana.Services
                         .OrderBy(x => x.Timestamp)
                         .ToList();
 
+                    _sw.Restart();
+
                     var anomalyDetected = _dataAnomalyDetectionService.DetectAnomaliesAsync(monitorSeries, monitorSeriesData);
+
+                    _logger.Information($"Executed anomaly detection | {monitorSeries.Name} | Time {_sw.ElapsedMilliseconds} ms");
 
                     if (anomalyDetected?.AnomalyDetectedAtLatestTimeStamp ?? false)
                     {
