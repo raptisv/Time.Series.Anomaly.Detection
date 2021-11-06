@@ -46,7 +46,7 @@ services:
       - elasticsearch:elasticsearch
     networks:
       - graylog-backend
-      - graylog2grafanaweb-backend
+      - graylog2grafana-backend
     ports:      
       - 9000:9000 # Graylog web interface and REST API      
       - 1514:1514 # Syslog TCP      
@@ -70,27 +70,27 @@ services:
   grafana:
     image: grafana/grafana:latest
     networks:
-     - graylog2grafanaweb-backend
+     - graylog2grafana-backend
     ports:
       - 3000:3000
     volumes:
       - grafana-data:/var/lib/grafana
 
   # Graylog2Grafana.Web
-  graylog2grafanaweb:
-    image: graylog2grafanaweb:latest
+  graylog2grafana:
+    image: raptis/graylog2grafana:latest
     restart: always
     depends_on:
       - graylog
       - grafana
     networks:
-      - graylog2grafanaweb-backend
+      - graylog2grafana-backend
     ports:
       - 5002:5002
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - Configuration__Url=http://0.0.0.0:5002
-      - Configuration__FilesPath=/etc/graylog2grafanaweb/Files
+      - Configuration__FilesPath=/etc/graylog2grafana/Files
       - Graylog__Url=http://graylog:9000
       - Graylog__Username=admin
       - Graylog__Password=admin
@@ -101,16 +101,16 @@ services:
       - Slack__BearerToken=slack_auth_bearer_token
       - Serilog__WriteTo__0__Args__hostnameOrAddress=graylog
     volumes:
-      - graylog2grafanaweb-data:/etc/graylog2grafanaweb
+      - graylog2grafana-data:/etc/graylog2grafana
 
 networks:
-  graylog2grafanaweb-backend:
+  graylog2grafana-backend:
     driver: bridge
   graylog-backend:
     driver: bridge
 
 volumes:
-  graylog2grafanaweb-data:
+  graylog2grafana-data:
   mongo-data:
   elasticsearch-data:
   graylog-data:

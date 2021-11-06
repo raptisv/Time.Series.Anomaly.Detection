@@ -2,12 +2,6 @@ FROM mcr.microsoft.com/dotnet/aspnet:3.1 AS base
 WORKDIR /app
 EXPOSE 5002
 
-# ML.NET dependencies
-RUN \
-  sed -i 's/ main/ main contrib non-free/' /etc/apt/sources.list && \
-  apt-get update && \
-  DEBIAN_FRONTEND=noninteractive apt-get install -y intel-mkl
-
 FROM mcr.microsoft.com/dotnet/sdk:3.1 AS build
 WORKDIR /src
 COPY ["Graylog2Grafana.Web/Graylog2Grafana.Web.csproj", "Graylog2Grafana.Web/"]
