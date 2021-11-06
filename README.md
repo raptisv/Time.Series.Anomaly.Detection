@@ -17,11 +17,9 @@ Graylog dashboards can display time series graphs, based on custom queries, but 
 Additionaly, it is often not easy to predict in advance, all the metrics you need to be displayed in Grafana (usually through Prometheus). Since all the information is usually on Graylog, you may need to monitor some custom Graylog queries for some time, before turning it to metrics.
 
 # Run with Docker
-1. Download and install [Docker Desktop](https://www.docker.com/products/docker-desktop)
-2. From VS right click on `..\Graylog2Grafana.Web\DockerFile` and select `Build Docker Image`
-3.  On directory `..\Time.Series.Anomaly.Detection\docker` execute `docker-compose -p graylog2grafana up -d`. This will create a docker compose including Graylog, Grafana & the current Graylog2Grafana solution
-4. When compose is up, you can navigate to [Graylog](http://localhost:9000/), [Grafana](http://localhost:3000/) and [Graylog2Grafana](http://localhost:5002/) 
-5. At this point Graylog2Grafana has already started loading histogram data from Graylog. You can [add, edit or delete custom Graylog queries here](http://localhost:5002/). Only thing left to do is to setup a Grafana dashboard in order to display that data
+1.  On directory `..\Time.Series.Anomaly.Detection\docker` execute `docker-compose -p graylog2grafana up -d`. This will create a docker compose including Graylog, Grafana & the current Graylog2Grafana solution
+2. When compose is up, you can navigate to [Graylog](http://localhost:9000/), [Grafana](http://localhost:3000/) and [Graylog2Grafana](http://localhost:5002/) 
+3. At this point Graylog2Grafana has already started loading histogram data from Graylog. You can [add, edit or delete custom Graylog queries here](http://localhost:5002/). Only thing left to do is to setup a Grafana dashboard in order to display that data
 
 # Setup Grafana
 * Navigate to [Grafana](http://localhost:3000/)
