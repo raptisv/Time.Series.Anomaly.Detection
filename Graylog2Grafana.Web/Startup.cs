@@ -2,9 +2,11 @@ using Graylog2Grafana.Abstractions;
 using Graylog2Grafana.Models.Configuration;
 using Graylog2Grafana.Services;
 using Graylog2Grafana.Workers;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -52,7 +54,28 @@ namespace Graylog2Grafana.Web
 
             services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =>
             {
-                options.UseSqlite($"Data Source={Path.Combine(filesDirectory.FullName, "Graylog2Grafana.db")}");
+                options.UseSqlite($"Data Source={Path.Combine(filesDirectory.FullName, "Graylog2Grafana_v2.db")}");
+            });
+
+            services.AddIdentity<IdentityUser, IdentityRole>()
+                .AddRoles<IdentityRole>()
+                .AddEntityFrameworkStores<ApplicationDbContext>()
+                .AddDefaultTokenProviders();
+
+            services.Configure<IdentityOptions>(options =>
+            {
+                options.Password.RequireDigit = false;
+                options.Password.RequiredLength = 8;
+                options.Password.RequireNonAlphanumeric = false;
+                options.Password.RequireUppercase = false;
+                options.Password.RequireLowercase = false;
+            });
+
+            services.ConfigureApplicationCookie(options =>
+            {
+                options.LoginPath = new PathString("/Account/Login");
+                options.AccessDeniedPath = new PathString("/Account/Logout");
+                options.LogoutPath = new PathString("/Account/Logout");
             });
 
             services
@@ -71,6 +94,7 @@ namespace Graylog2Grafana.Web
             .AddSingleton<IAnomalyDetectionService, AnomalyDetectionService>()
             .AddSingleton<IMonitorSeriesDataAnomalyDetectionService, MonitorSeriesDataAnomalyDetectionService>()
             // Scoped
+            .AddScoped<IUsersService, UsersService>()
             .AddScoped<IMonitorSeriesService, MonitorSeriesService>()
             .AddScoped<IMonitorSeriesDataService, MonitorSeriesDataService>()
             .AddScoped<IAnomalyDetectionDataService, AnomalyDetectionDataService>()
@@ -132,6 +156,8 @@ namespace Graylog2Grafana.Web
             app.UseStaticFiles();
 
             app.UseRouting();
+
+            app.UseAuthentication();
 
             app.UseAuthorization();
 

@@ -7,8 +7,10 @@
 
     List<SelectListItem> annotationTypes = EnumProvider<MonitorType>.GetValues(MonitorType.Downwards).Select(x => new SelectListItem { Text = x.Value, Value = x.Key.ToString() }).ToList();
 }
-<div class="mb-3">
-    <a type="button" class="btn btn-primary btn-sm" href="@Url.Action("Create", "MonitorSeries")" title="New series monitor"><i class="bi bi-plus-square"></i></a>
+<div class="mb-3 d-flex">
+    <a type="button" class="btn btn-primary btn-sm me-auto" href="@Url.Action("Create", "MonitorSeries")" title="New series monitor"><i class="bi bi-plus-square"></i></a>
+    <a type="button" class="btn btn-primary btn-sm" href="javascript:downloadFile('@Url.Action("ExportDefinitions", "MonitorSeries")', 'Graylog2Grafana_definitions.json')" title="Download definitions"><i class="bi bi-download"></i></a>
+    <a type="button" class="btn btn-primary btn-sm ms-2" href="#" title="Upload definitions" data-bs-toggle="modal" data-bs-target="#modal_upload_definitions"><i class="bi bi-upload"></i></a>
 </div>
 
 @foreach (var type in annotationTypes)
@@ -63,5 +65,26 @@
     }
 }
 
-
+<div class="modal fade" id="modal_upload_definitions" tabindex="-1" aria-labelledby="modal_upload_definitions_label" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modal_upload_definitions_label">Upload definitions</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form>
+          <div class="mb-3">
+            <label for="message-text" class="col-form-label">The following json definitions will be appended to the existing.</label>
+            <textarea class="form-control modal-json-textarea" id="message-text" rows="20"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" id="btn-upload-definitions">Upload</button>
+      </div>
+    </div>
+  </div>
+</div>
 

@@ -1,0 +1,32 @@
+﻿@using Microsoft.AspNetCore.Identity;
+@model IdentityUser
+@{
+    ViewData["Title"] = "Delete";
+}
+
+<div class="row clearfix">
+    <div class="col-12">
+        <div class="card bg-dark">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    Delete
+                </h5>
+            </div>
+            <div class="card-body">
+                @using (Html.BeginForm(("Delete", "Users", new { id = Model.Id }, FormMethod.Post, true, new { role = "form" })))
+                {
+                    @Html.HiddenFor(m => m.Id)
+                    <div>
+                        Delete user @Model.UserName ?
+                    </div>
+                    <div class="form-group">
+                        @Html.ValidationMessage("CustomError", new { @class = "text-danger" })
+                    </div>
+                    <button type="submit" class="btn btn-danger mt-3" title="Delete">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+</div>

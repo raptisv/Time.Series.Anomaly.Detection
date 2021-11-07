@@ -1,12 +1,16 @@
 ﻿using Graylog2Grafana.Abstractions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 using System;
+using System.IO;
 using System.Threading.Tasks;
 using Time.Series.Anomaly.Detection.Data.Abstractions;
 using Time.Series.Anomaly.Detection.Data.Models;
 
 namespace Graylog2Grafana.Web.Controllers
 {
+    [Authorize]
     public class MonitorSeriesController : Controller
     {
         private readonly IMonitorSeriesService _monitorSeriesService;
@@ -128,12 +132,16 @@ namespace Graylog2Grafana.Web.Controllers
         #region Import export definitions
 
         [HttpGet]
-        public async Task<JsonResult> ExportDefinitions()
+        public async Task<IActionResult> ExportDefinitions()
         {
             try
             {
                 var result = await _monitorSeriesService.GetAllAsync();
-                return Json(result);
+                var strResult = JsonConvert.SerializeObject(result, new JsonSerializerSettings() { NullValueHandling = NullValueHandling.Ignore });
+                byte[] bytes = System.Text.Encoding.UTF8.GetBytes(strResult);
+
+                var content = new MemoryStream(bytes);
+                return File(content, "application/json", "Graylog2Grafana_definitions.json");
             }
             catch (Exception ex)
             {
@@ -142,21 +150,26 @@ namespace Graylog2Grafana.Web.Controllers
         }
 
         [HttpPost]
-        public async Task<JsonResult> ImportDefinitions([FromBody] MonitorSeries[] model)
+        public async Task<IActionResult> ImportDefinitions([FromBody] MonitorSeries[] model)
         {
             try
             {
-                foreach(var item in model)
+                if (model == null)
+                {
+                    throw new Exception("Post body cannot be empty");
+                }
+
+                foreach (var item in model)
                 {
                     await _monitorSeriesService.CreateAsync(item);
                 }
             }
             catch (Exception ex)
             {
-                return Json(ex.Message);
+                return BadRequest(new { Error = ex.Message });
             }
 
-            return Json("OK");
+            return Ok();
         }
 
         #endregion

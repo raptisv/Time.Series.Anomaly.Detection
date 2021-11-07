@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
@@ -16,6 +16,34 @@
     </None>
     <None Include="wwwroot\img\Graylog2Grafana_0.png" />
     <None Include="wwwroot\img\Graylog2Grafana_1.png" />
+    <None Include="wwwroot\lib\bootstrap-5.0.2\css\bootstrap-grid.css.map" />
+    <None Include="wwwroot\lib\bootstrap-5.0.2\css\bootstrap-grid.min.css.map" />
+    <None Include="wwwroot\lib\bootstrap-5.0.2\css\bootstrap-grid.rtl.css.map" />
+    <None Include="wwwroot\lib\bootstrap-5.0.2\css\bootstrap-grid.rtl.min.css.map" />
+    <None Include="wwwroot\lib\bootstrap-5.0.2\css\bootstrap-reboot.css.map" />
+    <None Include="wwwroot\lib\bootstrap-5.0.2\css\bootstrap-reboot.min.css.map" />
+    <None Include="wwwroot\lib\bootstrap-5.0.2\css\bootstrap-reboot.rtl.css.map" />
+    <None Include="wwwroot\lib\bootstrap-5.0.2\css\bootstrap-reboot.rtl.min.css.map" />
+    <None Include="wwwroot\lib\bootstrap-5.0.2\css\bootstrap-utilities.css.map" />
+    <None Include="wwwroot\lib\bootstrap-5.0.2\css\bootstrap-utilities.min.css.map" />
+    <None Include="wwwroot\lib\bootstrap-5.0.2\css\bootstrap-utilities.rtl.css.map" />
+    <None Include="wwwroot\lib\bootstrap-5.0.2\css\bootstrap-utilities.rtl.min.css.map" />
+    <None Include="wwwroot\lib\bootstrap-5.0.2\css\bootstrap.css.map" />
+    <None Include="wwwroot\lib\bootstrap-5.0.2\css\bootstrap.min.css.map" />
+    <None Include="wwwroot\lib\bootstrap-5.0.2\css\bootstrap.rtl.css.map" />
+    <None Include="wwwroot\lib\bootstrap-5.0.2\css\bootstrap.rtl.min.css.map" />
+    <None Include="wwwroot\lib\bootstrap-5.0.2\js\bootstrap.bundle.js" />
+    <None Include="wwwroot\lib\bootstrap-5.0.2\js\bootstrap.bundle.js.map" />
+    <None Include="wwwroot\lib\bootstrap-5.0.2\js\bootstrap.bundle.min.js" />
+    <None Include="wwwroot\lib\bootstrap-5.0.2\js\bootstrap.bundle.min.js.map" />
+    <None Include="wwwroot\lib\bootstrap-5.0.2\js\bootstrap.esm.js" />
+    <None Include="wwwroot\lib\bootstrap-5.0.2\js\bootstrap.esm.js.map" />
+    <None Include="wwwroot\lib\bootstrap-5.0.2\js\bootstrap.esm.min.js" />
+    <None Include="wwwroot\lib\bootstrap-5.0.2\js\bootstrap.esm.min.js.map" />
+    <None Include="wwwroot\lib\bootstrap-5.0.2\js\bootstrap.js" />
+    <None Include="wwwroot\lib\bootstrap-5.0.2\js\bootstrap.js.map" />
+    <None Include="wwwroot\lib\bootstrap-5.0.2\js\bootstrap.min.js" />
+    <None Include="wwwroot\lib\bootstrap-5.0.2\js\bootstrap.min.js.map" />
     <None Include="wwwroot\lib\chartjs\chartjs.js" />
     <None Include="wwwroot\lib\moment\moment.js" />
   </ItemGroup>

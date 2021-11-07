@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using Newtonsoft.Json;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Time.Series.Anomaly.Detection.Data.Models.Enums;
 
@@ -6,6 +7,7 @@ namespace Time.Series.Anomaly.Detection.Data.Models
 {
     public class MonitorSeries
     {
+        [JsonIgnore]
         public long ID { get; set; }
 
         [Required]

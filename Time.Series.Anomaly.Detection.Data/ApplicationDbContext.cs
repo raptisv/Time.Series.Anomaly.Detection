@@ -1,8 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 
 namespace Time.Series.Anomaly.Detection.Data.Models
 {
-    public class ApplicationDbContext : DbContext
+    public class ApplicationDbContext : IdentityDbContext<IdentityUser>
     {
         public DbSet<MonitorSeries> MonitorSeries { get; set; }
         public DbSet<MonitorSeriesData> MonitorSeriesData { get; set; }
@@ -47,6 +49,34 @@ namespace Time.Series.Anomaly.Detection.Data.Models
                     MinuteDurationForAnomalyDetection = 60,
                     DoNotAlertAgainWithinMinutes = null
                 });
+
+            // Seed Admin role
+            builder.Entity<IdentityRole>().HasData(
+                new IdentityRole() { Id = "fab4fac1-c546-41de-aebc-a14da6895711", Name = "admin", ConcurrencyStamp = "1", NormalizedName = "admin" });
+
+            // Seed admin user
+            string adminUsername = "admin";
+            string adminPassword = "admin";
+            IdentityUser adminUser = new IdentityUser()
+            {
+                Id = "b74ddd14-6340-4840-95c2-db12554843e5",
+                UserName = adminUsername,
+                Email = adminUsername,
+                NormalizedEmail = adminUsername.ToUpper(),
+                NormalizedUserName = adminUsername.ToUpper(),
+                LockoutEnabled = false,
+                TwoFactorEnabled = false,
+                EmailConfirmed = true,
+                SecurityStamp = "9e9d98d1-d7b6-4ac4-ae83-bd4819e10ecf"
+            };
+            PasswordHasher<IdentityUser> passwordHasher = new PasswordHasher<IdentityUser>();
+            var initialAdminPassword = adminPassword;
+            adminUser.PasswordHash = passwordHasher.HashPassword(adminUser, initialAdminPassword);
+            builder.Entity<IdentityUser>().HasData(adminUser);
+
+            // Bind Admin to role
+            builder.Entity<IdentityUserRole<string>>().HasData(
+                new IdentityUserRole<string>() { RoleId = "fab4fac1-c546-41de-aebc-a14da6895711", UserId = "b74ddd14-6340-4840-95c2-db12554843e5" });
         }
     }
 }

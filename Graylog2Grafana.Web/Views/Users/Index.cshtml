@@ -1,0 +1,46 @@
+﻿@using Graylog2Grafana.Web.Models.Helpers;
+@using Time.Series.Anomaly.Detection.Data.Models.Enums;
+@using Microsoft.AspNetCore.Identity;
+@inject UserManager<IdentityUser> _userManager;
+@model List<IdentityUser>
+@{
+    ViewData["Title"] = "Home Page";
+
+    List<SelectListItem> annotationTypes = EnumProvider<MonitorType>.GetValues(MonitorType.Downwards).Select(x => new SelectListItem { Text = x.Value, Value = x.Key.ToString() }).ToList();
+}
+<div class="mb-3 d-flex">
+    <a type="button" class="btn btn-primary btn-sm me-auto" href="@Url.Action("Create", "Users")" title="New series monitor"><i class="bi bi-plus-square"></i></a>
+</div>
+
+<div>
+    <h4>
+        Users
+    </h4>
+</div>
+<table class="table table-hover mt-3">
+    <thead>
+        <tr>
+            <th scope="col">Name</th>
+            <th scope="col">Id</th>
+            <th scope="col"></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var user in Model)
+        {
+            <tr>
+                <td>@user.UserName</td>
+                <th scope="row">@user.Id</th>
+                <td>
+                    @{ 
+                        var userRoles = await _userManager.GetRolesAsync(user);
+                        if (!userRoles.Any(x => x == "admin"))
+                        {
+                            <a type="button" title="Delete" class="btn btn-danger btn-sm" href="@Url.Action("Delete", "Users", new { id = user.Id })"><i class="bi bi-trash"></i></a>
+                        }
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

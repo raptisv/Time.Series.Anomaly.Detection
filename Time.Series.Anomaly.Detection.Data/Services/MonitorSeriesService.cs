@@ -36,10 +36,11 @@ namespace Time.Series.Anomaly.Detection.Data.Services
 
             if (existing.Any(x => x.Name.ToLower().Equals(model.Name.ToLower())))
             {
-                throw new Exception("Name already exists");
+                throw new Exception($"A definition with name '{model.Name}' already exists");
             }
 
             _dbContext.MonitorSeries.Add(model);
+
             await _dbContext.SaveChangesAsync();
         }
 

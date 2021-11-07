@@ -1,9 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 using Time.Series.Anomaly.Detection.Data.Abstractions;
 
 namespace Graylog2Grafana.Web.Controllers
 {
+    [Authorize]
     public class HomeController : Controller
     {
         private readonly IMonitorSeriesService _monitorSeriesService;
