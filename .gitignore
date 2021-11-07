@@ -41,6 +41,10 @@ Generated\ Files/
 TestResult.xml
 
 Graylog2Grafana.db
+Graylog2Grafana_v2.db
+Graylog2Grafana_v3.db
+Graylog2Grafana_v4.db
+Graylog2Grafana_v5.db
 Graylog2Grafana.db-shm
 Graylog2Grafana.db-wal
 
