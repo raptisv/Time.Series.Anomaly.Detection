@@ -18,7 +18,7 @@ Additionaly, it is often not easy to predict in advance, all the metrics you nee
 
 # Run with Docker
 1.  On directory `..\Time.Series.Anomaly.Detection\docker` execute `docker-compose -p graylog2grafana up -d`. This will create a docker compose including Graylog, Grafana & the current Graylog2Grafana solution
-2. When compose is up, you can navigate to [Graylog](http://localhost:9000/), [Grafana](http://localhost:3000/) and [Graylog2Grafana](http://localhost:5002/) 
+2. When compose is up, you can navigate to [Graylog](http://localhost:9000/), [Grafana](http://localhost:3000/) and [Graylog2Grafana](http://localhost:5002/) using the default credentials `username: admin` and `password: admin`
 3. At this point Graylog2Grafana has already started loading histogram data from Graylog. You can [add, edit or delete custom Graylog queries here](http://localhost:5002/). Only thing left to do is to setup a Grafana dashboard in order to display that data
 
 # Setup Grafana
