@@ -10,7 +10,6 @@ using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
-using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
@@ -29,7 +28,7 @@ namespace Graylog2Grafana.Services
         private readonly IOptions<DatasetConfiguration> _detectionConfiguration;
         private readonly HttpClient _httpClient;
         private static bool? _graylogVersionSupportsViewSearchEndpoint = null;
-        private readonly Stopwatch _sw;
+        private static string _graylogSearchId = Utils.GetRandomHexNumber(24);
 
         public GraylogDataService(
             ILogger logger,
@@ -43,7 +42,6 @@ namespace Graylog2Grafana.Services
             _dataAnomalyDetectionService = dataAnomalyDetectionService;
             _detectionConfiguration = detectionConfiguration;
             _httpClient = clientFactory.CreateClient("Graylog");
-            _sw = new Stopwatch();
         }
 
         public async Task LoadDataAsync()
@@ -140,11 +138,7 @@ namespace Graylog2Grafana.Services
                         .OrderBy(x => x.Timestamp)
                         .ToList();
 
-                    _sw.Restart();
-
                     var anomalyDetected = _dataAnomalyDetectionService.DetectAnomaliesAsync(monitorSeries, monitorSeriesData);
-
-                    _logger.Information($"Executed anomaly detection | {monitorSeries.Name} | Time {_sw.ElapsedMilliseconds} ms");
 
                     if (anomalyDetected?.AnomalyDetectedAtLatestTimeStamp ?? false)
                     {
@@ -305,9 +299,7 @@ namespace Graylog2Grafana.Services
         {
             try
             {
-                var searchId = "000000000000000000000AAA";
-
-                var searchCreateRequest = new SearchCreateRequest(searchId, queries, interval);
+                var searchCreateRequest = new SearchCreateRequest(_graylogSearchId, queries, interval);
 
                 var searchCreateRequestPostBody = new StringContent(JsonConvert.SerializeObject(searchCreateRequest), Encoding.UTF8, "application/json");
 
@@ -317,7 +309,7 @@ namespace Graylog2Grafana.Services
 
                     var searchExecuteRequestPostBody = new StringContent(JsonConvert.SerializeObject(new { }), Encoding.UTF8, "application/json");
 
-                    using (HttpResponseMessage searchExecuteResponse = await _httpClient.PostAsync($"/api/views/search/{searchId}/execute", searchExecuteRequestPostBody))
+                    using (HttpResponseMessage searchExecuteResponse = await _httpClient.PostAsync($"/api/views/search/{_graylogSearchId}/execute", searchExecuteRequestPostBody))
                     {
                         searchExecuteResponse.EnsureSuccessStatusCode();
 

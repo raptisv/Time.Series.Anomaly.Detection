@@ -8,6 +8,18 @@ function downloadFile(uri, fileName) {
     link.remove();
 }
 
+function deleteSeriesData(itemId) {
+    if (confirm('Clear series data?')) {
+        fetch(`/MonitorSeries/DeleteData?id=${itemId}`, {
+            method: 'delete',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+        })
+            .then(data => alert('Data cleared'));
+    }
+}
+
 $(document).ready(function () {
 
     $('#btn-upload-definitions').click(function () {

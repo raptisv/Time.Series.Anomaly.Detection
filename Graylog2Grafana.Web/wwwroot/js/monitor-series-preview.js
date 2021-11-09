@@ -48,7 +48,25 @@ $(document).ready(function () {
     setInterval(function () {
         reloadSingle(monitorSeriesId);
     }, 10000);
+
+    $('#sensitivity-range').change(function () {
+        var sensitivity = $(this).val();
+        $('#lbl-sensitivity').text(sensitivity);
+        updateSensitivity(monitorSeriesId, sensitivity, function () {
+            reloadSingle(monitorSeriesId);
+        });
+    });
 });
+
+function updateSensitivity(itemId, sensitivity, callback) {
+    fetch(`/MonitorSeries/SetSensitivity?id=${itemId}&sensitivity=${sensitivity}`, {
+        method: 'put',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+    })
+    .then(data => callback(data));
+}
 
 function fetchMonitorDetectData(itemId, callback) {
     fetch(`/MonitorSeries/DetectionResult?id=${itemId}`, {

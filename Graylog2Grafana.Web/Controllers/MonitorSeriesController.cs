@@ -117,6 +117,22 @@ namespace Graylog2Grafana.Web.Controllers
             return View(monitorSeries);
         }
 
+        [HttpPut]
+        public async Task<IActionResult> SetSensitivity(long id, int sensitivity)
+        {
+            await _monitorSeriesService.UpdateSensitivityAsync(id, sensitivity);
+
+            return Ok();
+        }
+
+        [HttpDelete]
+        public async Task<IActionResult> DeleteData(long id)
+        {
+            await _monitorSeriesService.DeleteDataAsync(id);
+
+            return Ok();
+        }
+
         [HttpGet]
         public async Task<JsonResult> DetectionResult(long id)
         {

@@ -36,6 +36,7 @@
                     <th scope="col"></th>
                     <th scope="col"></th>
                     <th scope="col"></th>
+                    <th scope="col"></th>
                 </tr>
             </thead>
             <tbody>
@@ -54,6 +55,9 @@
                         </td>
                         <td>
                             <a type="button" title="Edit" class="btn btn-primary btn-sm" href="@Url.Action("Edit", "MonitorSeries", new { id = item.ID })"><i class="bi bi-pencil-square"></i></a>
+                        </td>
+                        <td>
+                            <a type="button" title="Clear data" class="btn btn-danger btn-sm" href="javascript:deleteSeriesData(@item.ID)"><i class="bi bi-x-circle"></i></a>
                         </td>
                         <td>
                             <a type="button" title="Delete" class="btn btn-danger btn-sm" href="@Url.Action("Delete", "MonitorSeries", new { id = item.ID })"><i class="bi bi-trash"></i></a>

@@ -10,6 +10,8 @@ namespace Time.Series.Anomaly.Detection.Data.Abstractions
         Task<MonitorSeries> GetByIdAsync(long id);
         Task CreateAsync(MonitorSeries item);
         Task UpdateAsync(MonitorSeries item);
+        Task UpdateSensitivityAsync(long id, int sensitivity);
+        Task DeleteDataAsync(long id);
         Task DeleteAsync(MonitorSeries item);
     }
 }

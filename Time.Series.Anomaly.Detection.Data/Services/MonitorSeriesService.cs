@@ -69,12 +69,34 @@ namespace Time.Series.Anomaly.Detection.Data.Services
             _dbContext.Entry(model).Property(x => x.MinuteDurationForAnomalyDetection).IsModified = true;
             _dbContext.Entry(model).Property(x => x.DoNotAlertAgainWithinMinutes).IsModified = true;
 
-            // Delete previous data for the series
-            var oldItems = _dbContext.MonitorSeriesData.Where(u => u.MonitorSeriesID == model.ID);
-            _dbContext.MonitorSeriesData.RemoveRange(oldItems);
+            await _dbContext.SaveChangesAsync();
+        }
 
-            var oldAlertItems = _dbContext.AnomalyDetectionData.Where(u => u.MonitorSeriesID == model.ID);
-            _dbContext.AnomalyDetectionData.RemoveRange(oldAlertItems);
+
+        public async Task DeleteDataAsync(long id)
+        {
+            var data = _dbContext.MonitorSeriesData.Where(u => u.MonitorSeriesID == id);
+            _dbContext.MonitorSeriesData.RemoveRange(data);
+
+            var alerts = _dbContext.AnomalyDetectionData.Where(u => u.MonitorSeriesID == id);
+            _dbContext.AnomalyDetectionData.RemoveRange(alerts);
+
+            await _dbContext.SaveChangesAsync();
+        }
+
+
+        public async Task UpdateSensitivityAsync(long id, int sensitivity)
+        {
+            if (sensitivity<1 || sensitivity > 100)
+            {
+                throw new Exception("Sensitivity acceptable range is fron 1-100");
+            }
+
+            var model = await GetByIdAsync(id);
+
+            model.Sensitivity = sensitivity;
+
+            _dbContext.Entry(model).Property(x => x.Sensitivity).IsModified = true;
 
             await _dbContext.SaveChangesAsync();
         }

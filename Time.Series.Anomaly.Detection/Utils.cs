@@ -5,6 +5,8 @@ namespace Time.Series.Anomaly.Detection.Models
 {
     public static class Utils
     {
+        private static Random _random = new Random();
+
         public static long GetUnixTimestamp(DateTime date)
         {
             DateTime origin = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
@@ -84,6 +86,16 @@ namespace Time.Series.Anomaly.Detection.Models
                     String.Format("{0} years ago", timeSpan.Days / 365) :
                     "about a year ago";
             }
+        }
+
+        public static string GetRandomHexNumber(int digits)
+        {
+            var buffer = new byte[digits / 2];
+            _random.NextBytes(buffer);
+            var result = String.Concat(buffer.Select(x => x.ToString("X2")).ToArray());
+            if (digits % 2 == 0)
+                return result;
+            return result + _random.Next(16).ToString("X");
         }
     }
 }

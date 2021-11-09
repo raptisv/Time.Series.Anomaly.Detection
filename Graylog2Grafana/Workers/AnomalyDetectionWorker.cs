@@ -3,6 +3,7 @@ using Microsoft.Extensions.Hosting;
 using Serilog;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,6 +15,7 @@ namespace Graylog2Grafana.Workers
         private readonly ILogger _logger;
         private readonly IEnumerable<IDataService> _dataServices;
         private readonly INotificationService _notificationService;
+        private readonly Stopwatch _sw;
 
         public AnomalyDetectionWorker(
             ILogger logger,
@@ -23,6 +25,7 @@ namespace Graylog2Grafana.Workers
             _logger = logger;
             _dataServices = dataServices;
             _notificationService = notificationService;
+            _sw = new Stopwatch();
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -34,8 +37,10 @@ namespace Graylog2Grafana.Workers
             {
                 try
                 {
+                    _sw.Restart();
+
                     // Load data from all registered data services
-                    foreach(var dataService in _dataServices)
+                    foreach (var dataService in _dataServices)
                     {
                         // Detect & persist
                         var anomalyDetectionResult = await dataService.DetectAndPersistAnomaliesAsync();
@@ -50,6 +55,8 @@ namespace Graylog2Grafana.Workers
                                 anomalyDetected.PrelastDataInSeries);
                         }
                     }
+
+                    _logger.Information($"Executed anomaly detection | Time {_sw.ElapsedMilliseconds} ms");
                 }
                 catch (Exception ex)
                 {

@@ -11,17 +11,15 @@
     <script src="~/js/monitor-series-preview.js" asp-append-version="true"></script>
 }
 
-<div>
-    <h4>
-        Preview
-        <small class="text-muted">@Model.Name</small>
-    </h4>
+<div class="card text-white bg-dark mb-3">
+    <div class="card-header">Preview @Model.Name</div>
+    <div class="card-body">
+        <label class="form-label">Query</label>
+        <div class="text-muted">@Model.Query</div>
+        <label for="sensitivity-range" class="form-label">Sensitivity </label>
+        <div id="lbl-sensitivity" class="text-muted">@Model.Sensitivity</div>
+        <input type="range" class="form-range" id="sensitivity-range" min="1" max="100" value="@Model.Sensitivity">
+        <hr />
+        <div id="canvas-wrapper-single-@Model.ID" class="mt-4"></div>
+    </div>
 </div>
-<div>
-    <h5>
-        Query
-        <small class="text-muted">@Model.Query</small>
-    </h5>
-</div>
-
-<div id="canvas-wrapper-single-@Model.ID" class="mt-4"></div>
