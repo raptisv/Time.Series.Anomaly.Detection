@@ -19,12 +19,16 @@ namespace Time.Series.Anomaly.Detection.Data.Services
 
         public async Task<List<MonitorSeries>> GetAllAsync()
         {
-            return await _dbContext.MonitorSeries.ToListAsync();
+            return await _dbContext.MonitorSeries
+                            .Include(x => x.MonitorSource)
+                            .ToListAsync();
         }
 
         public async Task<MonitorSeries> GetByIdAsync(long id)
         {
-            return await _dbContext.MonitorSeries.SingleOrDefaultAsync(x => x.ID == id);
+            return await _dbContext.MonitorSeries
+                            .Include(x => x.MonitorSource)
+                            .SingleOrDefaultAsync(x => x.ID == id);
         }
 
         public async Task CreateAsync(MonitorSeries model)

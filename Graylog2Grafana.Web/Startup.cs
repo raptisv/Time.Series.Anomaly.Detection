@@ -2,7 +2,6 @@ using Graylog2Grafana.Abstractions;
 using Graylog2Grafana.Models.Configuration;
 using Graylog2Grafana.Services;
 using Graylog2Grafana.Workers;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -16,7 +15,6 @@ using Serilog;
 using System;
 using System.IO;
 using System.Net.Http.Headers;
-using System.Text;
 using Time.Series.Anomaly.Detection.Abstractions;
 using Time.Series.Anomaly.Detection.Data.Abstractions;
 using Time.Series.Anomaly.Detection.Data.Models;
@@ -41,8 +39,6 @@ namespace Graylog2Grafana.Web
                       .CreateLogger();
 
             services
-            .Configure<DatasetConfiguration>(Configuration.GetSection("Dataset"))
-            .Configure<GraylogConfiguration>(Configuration.GetSection("Graylog"))
             .Configure<SlackConfiguration>(Configuration.GetSection("Slack"));
 
             var filesDirectory = new DirectoryInfo(Configuration.GetValue<string>("Configuration:FilesPath"));
@@ -54,7 +50,7 @@ namespace Graylog2Grafana.Web
 
             services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =>
             {
-                options.UseSqlite($"Data Source={Path.Combine(filesDirectory.FullName, "Graylog2Grafana_v2.db")}");
+                options.UseSqlite($"Data Source={Path.Combine(filesDirectory.FullName, "Graylog2Grafana_v3.db")}");
             });
 
             services.AddIdentity<IdentityUser, IdentityRole>()
@@ -95,6 +91,7 @@ namespace Graylog2Grafana.Web
             .AddSingleton<IMonitorSeriesDataAnomalyDetectionService, MonitorSeriesDataAnomalyDetectionService>()
             // Scoped
             .AddScoped<IUsersService, UsersService>()
+            .AddScoped<IMonitorSourcesService, MonitorSourcesService>()
             .AddScoped<IMonitorSeriesService, MonitorSeriesService>()
             .AddScoped<IMonitorSeriesDataService, MonitorSeriesDataService>()
             .AddScoped<IAnomalyDetectionDataService, AnomalyDetectionDataService>()
@@ -105,10 +102,6 @@ namespace Graylog2Grafana.Web
 
             services.AddHttpClient("Graylog", c =>
             {
-                var graylogConfiguration = Configuration.GetSection("Graylog").Get<GraylogConfiguration>();
-                string base64 = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{graylogConfiguration.Username}:{graylogConfiguration.Password}"));
-                c.BaseAddress = new Uri(graylogConfiguration.Url);
-                c.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", base64);
                 c.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                 c.DefaultRequestHeaders.Add("X-Requested-By", "XMLHttpRequest");
                 c.Timeout = TimeSpan.FromSeconds(10);

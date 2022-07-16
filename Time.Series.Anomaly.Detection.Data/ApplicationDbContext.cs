@@ -6,6 +6,7 @@ namespace Time.Series.Anomaly.Detection.Data.Models
 {
     public class ApplicationDbContext : IdentityDbContext<IdentityUser>
     {
+        public DbSet<MonitorSources> MonitorSources { get; set; }
         public DbSet<MonitorSeries> MonitorSeries { get; set; }
         public DbSet<MonitorSeriesData> MonitorSeriesData { get; set; }
         public DbSet<AnomalyDetectionData> AnomalyDetectionData { get; set; }
@@ -23,7 +24,11 @@ namespace Time.Series.Anomaly.Detection.Data.Models
             // For example, you can rename the ASP.NET Core Identity table names and more.
             // Add your customizations after calling base.OnModelCreating(builder);
 
+            builder.Entity<MonitorSources>().ToTable("MonitorSources").HasKey(p => p.ID);
+            builder.Entity<MonitorSources>().HasIndex(p => p.Name).IsUnique();
+
             builder.Entity<MonitorSeries>().ToTable("MonitorSeries").HasKey(p => p.ID);
+            builder.Entity<MonitorSeries>().HasOne(p => p.MonitorSource).WithMany(b => b.MonitorSeriesData).HasForeignKey(p => p.MonitorSourceID).IsRequired();
             builder.Entity<MonitorSeries>().HasIndex(p => p.Name).IsUnique();
 
             builder.Entity<MonitorSeriesData>().ToTable("MonitorSeriesData").HasKey(p => p.ID);
@@ -35,6 +40,18 @@ namespace Time.Series.Anomaly.Detection.Data.Models
             builder.Entity<AnomalyDetectionData>().HasIndex(p => new { p.MonitorSeriesID, p.Timestamp }).IsUnique();
 
             // Seed 
+            var firstMonitorSource = new MonitorSources()
+            {
+                ID = 1,
+                Name = "Local",
+                SourceType = Enums.SourceType.Graylog,
+                Source = "http://localhost:9000",
+                Username = "admin",
+                Password = "admin"
+            };
+
+            builder.Entity<MonitorSources>().HasData(firstMonitorSource);
+
             builder.Entity<MonitorSeries>().HasData(
                 new MonitorSeries()
                 {
@@ -47,7 +64,8 @@ namespace Time.Series.Anomaly.Detection.Data.Models
                     MonitorType = Enums.MonitorType.DownwardsAndUpwards,
                     Description = "Initial dummy query",
                     MinuteDurationForAnomalyDetection = 60,
-                    DoNotAlertAgainWithinMinutes = null
+                    DoNotAlertAgainWithinMinutes = null,
+                    MonitorSourceID = firstMonitorSource.ID
                 });
 
             // Seed Admin role

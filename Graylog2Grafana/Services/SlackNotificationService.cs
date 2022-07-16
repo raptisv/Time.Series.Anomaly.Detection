@@ -16,19 +16,16 @@ namespace Graylog2Grafana.Services
     public class SlackNotificationService : INotificationService
     {
         private readonly ILogger _logger;
-        private readonly IOptions<GraylogConfiguration> _graylogConfiguration;
         private readonly IOptions<SlackConfiguration> _slackConfiguration;
         private readonly HttpClient _httpClient;
 
         public SlackNotificationService(
             ILogger logger,
             IOptions<SlackConfiguration> slackConfiguration, 
-            IOptions<GraylogConfiguration> graylogConfiguration,
             IHttpClientFactory clientFactory)
         {
             _logger = logger;
             _slackConfiguration = slackConfiguration;
-            _graylogConfiguration = graylogConfiguration;
             _httpClient = clientFactory.CreateClient("Slack");
         }
 
@@ -45,15 +42,29 @@ namespace Graylog2Grafana.Services
                     return;
                 }
 
-                var graylogUrl = $"{_graylogConfiguration.Value.Url}/search?q={HttpUtility.UrlEncode(currentMonitor.Query)}&rangetype=absolute&from={DateTime.UtcNow.AddMinutes(-10).ToString("yyyy-MM-ddTHH:mm:ss.fffZ")}&to={DateTime.UtcNow.AddMinutes(10).ToString("yyyy-MM-ddTHH:mm:ss.fffZ")}";
+                string message = string.Empty;
 
-                var percentage = preLastDataInSeries > 0
-                    ? Math.Abs(lastDataInSeries - preLastDataInSeries) / preLastDataInSeries * 100.0
-                    : 100;
+                switch (currentMonitor.MonitorSource.SourceType)
+                {
+                    case SourceType.Graylog:
+                        {
 
-                var message = anomalyDetected == MonitorType.Downwards
-                    ? $":arrow_down_small: {(int)percentage}% downwards spike on *<{graylogUrl}|{currentMonitor.Name}>* ({preLastDataInSeries} => {lastDataInSeries})"
-                    : $":arrow_up_small: {(int)percentage}% upwards spike on *<{graylogUrl}|{currentMonitor.Name}>* ({preLastDataInSeries} => {lastDataInSeries})";
+                            var graylogBaseUrl = currentMonitor.MonitorSource.Source;
+
+                            var graylogUrl = $"{graylogBaseUrl}/search?q={HttpUtility.UrlEncode(currentMonitor.Query)}&rangetype=absolute&from={DateTime.UtcNow.AddMinutes(-10).ToString("yyyy-MM-ddTHH:mm:ss.fffZ")}&to={DateTime.UtcNow.AddMinutes(10).ToString("yyyy-MM-ddTHH:mm:ss.fffZ")}";
+
+                            var percentage = preLastDataInSeries > 0
+                                ? Math.Abs(lastDataInSeries - preLastDataInSeries) / preLastDataInSeries * 100.0
+                                : 100;
+
+                            message = anomalyDetected == MonitorType.Downwards
+                                ? $":arrow_down_small: {(int)percentage}% downwards spike on *<{graylogUrl}|{currentMonitor.MonitorSource.Name}-{currentMonitor.Name}>* ({preLastDataInSeries} => {lastDataInSeries})"
+                                : $":arrow_up_small: {(int)percentage}% upwards spike on *<{graylogUrl}|{currentMonitor.MonitorSource.Name}-{currentMonitor.Name}>* ({preLastDataInSeries} => {lastDataInSeries})";
+                            break;
+                        }
+                    default:
+                        throw new NotImplementedException($"Source type {currentMonitor.MonitorSource.SourceType} not yet implemented");
+                }
 
                 StringContent obj = new StringContent(JsonConvert.SerializeObject(new
                 {

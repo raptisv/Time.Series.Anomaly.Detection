@@ -1,12 +1,18 @@
 ﻿@using Graylog2Grafana.Web.Models.Helpers;
 @using Time.Series.Anomaly.Detection.Data.Models.Enums;
 @using Time.Series.Anomaly.Detection.Data.Models;
+@using Time.Series.Anomaly.Detection.Data.Abstractions;
+@inject IMonitorSourcesService _monitorSourcesService;
 @model MonitorSeries
+
 @{
     var isEdit = Model != null && Model.ID > 0;
     ViewData["Title"] = isEdit ? "Edit" : "Create";
 
     List<SelectListItem> annotationTypes = EnumProvider<MonitorType>.GetValues(MonitorType.Downwards).Select(x => new SelectListItem { Text = x.Value, Value = x.Key.ToString() }).ToList();
+
+    var sources = await _monitorSourcesService.GetAllAsync();
+    List<SelectListItem> availableSources = sources.Select(x => new SelectListItem { Text = x.Name, Value = x.ID.ToString() }).ToList();
 }
 
 <div class="row clearfix">
@@ -14,7 +20,7 @@
         <div class="card bg-dark">
             <div class="card-header">
                 <h5 class="mb-0">
-                    @(isEdit ? "Edit" : "New")  monitor series
+                    @(isEdit ? "Edit" : "New") series
                 </h5>
             </div>
             <div class="card-body">
@@ -24,9 +30,15 @@
                     <div class="row">
                         <div class="col-12 col-md-6 col-lg-6">
                             <div class="form-group">
+                                <label for="Name" class="form-label mt-4">Source</label>
+                                @Html.DropDownListFor(m => m.MonitorSourceID, availableSources, null, new { @class = "form-control" })
+                                <div><small class="form-text text-muted">The series source</small></div>
+                                @Html.ValidationMessageFor(m => m.MonitorSourceID, "", new { @class = "text-danger" })
+                            </div>
+                            <div class="form-group">
                                 <label for="Name" class="form-label mt-4">Name</label>
                                 @Html.TextBoxFor(m => m.Name, new { @class = "form-control" })
-                                <div><small class="form-text text-muted">This is the name that will be available in Grafan. This is unique.</small></div>
+                                <div><small class="form-text text-muted">This is the name that will be available in Grafana. This is unique.</small></div>
                                 @Html.ValidationMessageFor(m => m.Name, "", new { @class = "text-danger" })
                             </div>
                             <div class="form-group">

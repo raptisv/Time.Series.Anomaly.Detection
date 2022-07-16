@@ -1,7 +1,5 @@
 ﻿using Graylog2Grafana.Abstractions;
 using Graylog2Grafana.Models;
-using Graylog2Grafana.Models.Configuration;
-using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,17 +13,14 @@ namespace Graylog2Grafana.Services
     public class MonitorSeriesDataAnomalyDetectionService : IMonitorSeriesDataAnomalyDetectionService
     {
         private readonly IAnomalyDetectionService _anomalyDetectionService;
-        private readonly IOptions<DatasetConfiguration> _detectionConfiguration;
 
         public MonitorSeriesDataAnomalyDetectionService(
-            IAnomalyDetectionService anomalyDetectionService, 
-            IOptions<DatasetConfiguration> detectionConfiguration)
+            IAnomalyDetectionService anomalyDetectionService)
         {
             _anomalyDetectionService = anomalyDetectionService;
-            _detectionConfiguration = detectionConfiguration;
         }
 
-        public DataAnomalyDetectionResult DetectAnomaliesAsync(
+        public DataAnomalyDetectionResult DetectAnomalies(
               MonitorSeries monitorSeries,
               List<MonitorSeriesData> monitorSeriesData)
         {
@@ -33,7 +28,7 @@ namespace Graylog2Grafana.Services
             monitorSeriesData.RemoveAll(x => Utils.TruncateToMinute(x.Timestamp) == Utils.TruncateToMinute(DateTime.UtcNow));
 
             // Remove some minutes in case the datasource needs some time to gather data
-            var dateFromToIgnoreValues = Utils.TruncateToMinute(DateTime.UtcNow.AddMinutes(-Math.Abs(_detectionConfiguration.Value.DetectionDelayInMinutes)));
+            var dateFromToIgnoreValues = Utils.TruncateToMinute(DateTime.UtcNow.AddMinutes(-Math.Abs(monitorSeries.MonitorSource.DetectionDelayInMinutes)));
             monitorSeriesData.RemoveAll(x => Utils.TruncateToMinute(x.Timestamp) >= dateFromToIgnoreValues);
 
             if (monitorSeriesData.Count < 12)

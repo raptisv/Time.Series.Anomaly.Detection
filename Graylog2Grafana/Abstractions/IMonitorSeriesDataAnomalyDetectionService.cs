@@ -6,6 +6,6 @@ namespace Graylog2Grafana.Abstractions
 {
     public interface IMonitorSeriesDataAnomalyDetectionService
     {
-        DataAnomalyDetectionResult DetectAnomaliesAsync(MonitorSeries monitorSeries, List<MonitorSeriesData> monitorSeriesData);
+        DataAnomalyDetectionResult DetectAnomalies(MonitorSeries monitorSeries, List<MonitorSeriesData> monitorSeriesData);
     }
 }

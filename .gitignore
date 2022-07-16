@@ -47,6 +47,7 @@ Graylog2Grafana_v4.db
 Graylog2Grafana_v5.db
 Graylog2Grafana.db-shm
 Graylog2Grafana.db-wal
+docker-build-tag-push.bat
 
 # Build Results of an ATL Project
 [Dd]ebugPS/

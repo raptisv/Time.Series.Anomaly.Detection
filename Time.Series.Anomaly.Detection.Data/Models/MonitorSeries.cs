@@ -37,7 +37,16 @@ namespace Time.Series.Anomaly.Detection.Data.Models
         [Range(0, 10000)]
         public int? DoNotAlertAgainWithinMinutes { get; set; }
 
+        [Required]
+        public int MonitorSourceID { get; set; }
+
+        [JsonIgnore]
+        public MonitorSources MonitorSource { get; set; }
+
+        [JsonIgnore]
         public virtual List<MonitorSeriesData> MonitorSeriesData { get; set; }
+
+        [JsonIgnore]
         public virtual List<AnomalyDetectionData> AnomalyDetectionData { get; set; }
     }
 }

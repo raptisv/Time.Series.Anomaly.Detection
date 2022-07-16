@@ -1,7 +1,5 @@
 ﻿using Graylog2Grafana.Abstractions;
-using Graylog2Grafana.Models.Configuration;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
 using Serilog;
 using System;
 using System.Collections.Generic;
@@ -14,17 +12,13 @@ namespace Graylog2Grafana.Workers
     {
         private readonly ILogger _logger;
         private readonly IEnumerable<IDataService> _dataServices;
-        private readonly IOptions<DatasetConfiguration> _detectionConfiguration;
 
         public LoadDataWorker(
             ILogger logger,
-            IEnumerable<IDataService> dataServices,
-            IOptions<DatasetConfiguration> detectionConfiguration, 
-            INotificationService notificationService)
+            IEnumerable<IDataService> dataServices)
         {
             _logger = logger;
             _dataServices = dataServices;
-            _detectionConfiguration = detectionConfiguration;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -48,8 +42,7 @@ namespace Graylog2Grafana.Workers
                 }
                 finally
                 {
-                    // Sanity check, no point in setting this less that 20 seconds
-                    var intervalMs = Math.Max(_detectionConfiguration.Value.LoadDataIntervalMs, 20000); 
+                    var intervalMs = 5000; // Execute every 5 seconds. Revisit in the future if needed.
 
                     await Task.Delay(intervalMs);
                 }

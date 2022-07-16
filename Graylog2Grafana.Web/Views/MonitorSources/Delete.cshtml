@@ -1,5 +1,5 @@
 ﻿@using Time.Series.Anomaly.Detection.Data.Models;
-@model MonitorSeries
+@model MonitorSources
 @{
     ViewData["Title"] = "Delete";
 }
@@ -9,15 +9,17 @@
         <div class="card bg-dark">
             <div class="card-header">
                 <h5 class="mb-0">
-                    Delete series
+                    Delete source
                 </h5>
             </div>
             <div class="card-body">
-                @using (Html.BeginForm(("Delete", "MonitorSeries", new { id = Model.ID }, FormMethod.Post, true, new { role = "form" })))
+                @using (Html.BeginForm(("Delete", "MonitorSources", new { id = Model.ID }, FormMethod.Post, true, new { role = "form" })))
                 {
                     @Html.HiddenFor(m => m.ID)
                     <div>
                         Delete @Model.Name ?
+                        <br>
+                        <div class="alert alert-danger">CAUTION: All series in the source will be deleted!</div>
                     </div>
                     <div class="form-group">
                         @Html.ValidationMessage("CustomError", new { @class = "text-danger" })

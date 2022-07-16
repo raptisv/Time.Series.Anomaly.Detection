@@ -1,0 +1,91 @@
+﻿@using Graylog2Grafana.Web.Models.Helpers;
+@using Time.Series.Anomaly.Detection.Data.Models.Enums;
+@using Time.Series.Anomaly.Detection.Data.Models;
+@model MonitorSources
+@{
+    var isEdit = Model != null && Model.ID > 0;
+    ViewData["Title"] = isEdit ? "Edit" : "Create";
+
+    List<SelectListItem> sourceTypes = EnumProvider<SourceType>.GetValues(SourceType.Graylog).Select(x => new SelectListItem { Text = x.Value, Value = x.Key.ToString() }).ToList();
+}
+
+<div class="row clearfix">
+    <div class="col-12">
+        <div class="card bg-dark">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    @(isEdit ? "Edit" : "New") source
+                </h5>
+            </div>
+            <div class="card-body">
+                @using (Html.BeginForm((isEdit ? "Edit" : "Create"), "MonitorSources", new { id = (Model?.ID ?? 0) }, FormMethod.Post, true, new { role = "form" }))
+                {
+                    @Html.HiddenFor(m => m.ID)
+                    <div class="row">
+                        <div class="col-12 col-md-6 col-lg-6">
+                            <div class="form-group">
+                                <label for="MonitorAnomalyType" class="form-label mt-4">Source type</label>
+                                @Html.DropDownListFor(m => m.SourceType, sourceTypes, null, new { @class = "form-control" })
+                                @Html.ValidationMessageFor(m => m.SourceType, "", new { @class = "text-danger" })
+                            </div>
+                            <div class="form-group">
+                                <label for="Name" class="form-label mt-4">Name</label>
+                                @Html.TextBoxFor(m => m.Name, new { @class = "form-control" })
+                                @Html.ValidationMessageFor(m => m.Name, "", new { @class = "text-danger" })
+                            </div>
+                            <div class="form-group">
+                                <label for="Description" class="form-label mt-4">Source</label>
+                                @Html.TextBoxFor(m => m.Source, new { @class = "form-control" })
+                                <div><small class="form-text text-muted">The source (e.g. the base url if type is Graylog)</small></div>
+                                @Html.ValidationMessageFor(m => m.Source, "", new { @class = "text-danger" })
+                            </div>
+                            <div class="form-group">
+                                <label for="Query" class="form-label mt-4">Username (optional)</label>
+                                @Html.TextBoxFor(m => m.Username, new { @class = "form-control" })
+                                <div><small class="form-text text-muted">The username for authentication</small></div>
+                                @Html.ValidationMessageFor(m => m.Username, "", new { @class = "text-danger" })
+                            </div>
+                            <div class="form-group">
+                                <label for="Query" class="form-label mt-4">Password (optional)</label>
+                                @Html.PasswordFor(m => m.Password, new { @class = "form-control" })
+                                <div><small class="form-text text-muted">The password for authentication</small></div>
+                                @Html.ValidationMessageFor(m => m.Password, "", new { @class = "text-danger" })
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6 col-lg-6">
+                            <div class="form-group">
+                                <label for="LowerLimitToDetect" class="form-label mt-4">Interval in seconds</label>
+                                @Html.TextBoxFor(m => m.LoadDataIntervalSeconds, new { @class = "form-control", type = "number", placeholder = "e.g. 60" })
+                                <div><small class="form-text text-muted">The interval to load data, in seconds</small></div>
+                                @Html.ValidationMessageFor(m => m.LoadDataIntervalSeconds, "", new { @class = "text-danger" })
+                            </div>
+                            <div class="form-group">
+                                <label for="DoNotAlertAgainWithinMinutes" class="form-label mt-4">Data retention in minutes</label>
+                                @Html.TextBoxFor(m => m.DataRetentionInMinutes, new { @class = "form-control", type = "number", placeholder = "e.g. 1440" })
+                                <div><small class="form-text text-muted">Permanently deletes data after the given minutes have passed</small></div>
+                                @Html.ValidationMessageFor(m => m.DataRetentionInMinutes, "", new { @class = "text-danger" })
+                            </div>
+                            <div class="form-group">
+                                <label for="UpperLimitToDetect" class="form-label mt-4">Detection delay in minutes</label>
+                                @Html.TextBoxFor(m => m.DetectionDelayInMinutes, new { @class = "form-control", type = "number", placeholder = "e.g. 2" })
+                                <div><small class="form-text text-muted">Adds some delay in detection if the datasource is not instant.
+                                    For example Graylog, sometimes has a delay for some minutes on heavy load. For that reason we usually add a delay for 2-3 minutes to avoid unnecessary alerts.</small></div>
+                                @Html.ValidationMessageFor(m => m.DetectionDelayInMinutes, "", new { @class = "text-danger" })
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        @Html.ValidationMessage("CustomError", new { @class = "text-danger" })
+                    </div>
+                    @if (isEdit)
+                    {
+                        <div class="alert alert-info">CAUTION: If the source is password protected, you will have to set the password again before saving!</div>
+                    }
+                    <button type="submit" class="btn btn-primary mt-3" title="@(isEdit ? "Save" : "Create")">
+                        <i class="bi bi-upload"></i>
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+</div>

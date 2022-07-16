@@ -7,9 +7,6 @@ namespace Graylog2Grafana.SimpleJsonGrafanaPlugin.Models
         [JsonProperty("name")]
         public string Name { get; set; }
 
-        [JsonProperty("datasource")]
-        public string Datasource { get; set; }
-
         [JsonProperty("iconColor")]
         public string IconColor { get; set; }
 
