@@ -1,4 +1,5 @@
 ﻿@using Graylog2Grafana.Web.Models.Helpers;
+@using System.Web
 @using Time.Series.Anomaly.Detection.Data.Models.Enums;
 @using Time.Series.Anomaly.Detection.Data.Models;
 @model (List<MonitorSources> Sources, List<MonitorSeries> Series)
@@ -44,8 +45,8 @@
                     @foreach (var item in Model.Sources.Where(x => ((int)x.SourceType).ToString() == type.Value))
                     {
                         <tr>
-                            <th scope="row" style="cursor:pointer">@item.Name</th>
-                            <td>@item.Source</td>
+                            <th scope="row">@item.Name</th>
+                            <td><a href="@(item.Source.Trim('/'))/search" style="text-decoration:none;" target="_blank">@item.Source</a></td>
                             <td>@(string.IsNullOrWhiteSpace(item.Username) ? "N/A" : item.Username)</td>
                             <td>@(string.IsNullOrWhiteSpace(item.Password) ? "N/A" : "*****")</td>
                             <td>@item.LoadDataIntervalSeconds seconds</td>
@@ -105,8 +106,10 @@ else
                 <tbody>
                     @foreach (var item in Model.Series.Where(x => ((int)x.MonitorType).ToString() == type.Value))
                     {
+                        var graylogUrl = $"{item.MonitorSource.Source.Trim('/')}/search?q={HttpUtility.UrlEncode(item.Query)}";
+                        
                         <tr>
-                            <th scope="row" style="cursor:pointer" title="@item.Query">@item.Name</th>
+                            <th scope="row" title="@item.Query"><a href="@graylogUrl" style="text-decoration: none;" target="_blank">@item.Name</a></th>
                             <td>@item.MonitorSource.Name</td>
                             <td>@item.Description</td>
                             <td>@item.MinuteDurationForAnomalyDetection</td>
