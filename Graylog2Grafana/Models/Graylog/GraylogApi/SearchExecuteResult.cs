@@ -62,13 +62,10 @@ namespace Graylog2Grafana.Models.Graylog.GraylogApi
                         [JsonProperty("values")]
                         public List<ValueItem> Values { get; set; }
 
-                        [JsonProperty("source")]
-                        public string Source { get; set; }
-
                         public class ValueItem
                         {
                             [JsonProperty("value")]
-                            public int Value { get; set; }
+                            public decimal? Value { get; set; }
                         }
                     }
                 }

@@ -20,6 +20,12 @@ namespace Time.Series.Anomaly.Detection.Data.Models
         public string Query { get; set; }
 
         [Required]
+        public string Aggregation { get; set; }
+
+        [RegularExpression(@"^\w+$", ErrorMessage = "Allowed characters are a_z 0_9 and _")]
+        public string Field { get; set; }        
+
+        [Required]
         [Range(1, 100)]
         public double Sensitivity { get; set; }
 

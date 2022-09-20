@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,15 +11,18 @@ namespace Time.Series.Anomaly.Detection.Data.Services
 {
     public class MonitorSeriesService : IMonitorSeriesService
     {
-        private readonly ApplicationDbContext _dbContext;
+        private readonly IServiceScopeFactory _scopeFactory;
 
-        public MonitorSeriesService(ApplicationDbContext dbContext)
+        public MonitorSeriesService(IServiceScopeFactory scopeFactory)
         {
-            _dbContext = dbContext;
+            _scopeFactory = scopeFactory;
         }
 
         public async Task<List<MonitorSeries>> GetAllAsync()
         {
+            using var scope = _scopeFactory.CreateScope();
+            using var _dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
             return await _dbContext.MonitorSeries
                             .Include(x => x.MonitorSource)
                             .ToListAsync();
@@ -26,6 +30,9 @@ namespace Time.Series.Anomaly.Detection.Data.Services
 
         public async Task<MonitorSeries> GetByIdAsync(long id)
         {
+            using var scope = _scopeFactory.CreateScope();
+            using var _dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
             return await _dbContext.MonitorSeries
                             .Include(x => x.MonitorSource)
                             .SingleOrDefaultAsync(x => x.ID == id);
@@ -33,6 +40,9 @@ namespace Time.Series.Anomaly.Detection.Data.Services
 
         public async Task CreateAsync(MonitorSeries model)
         {
+            using var scope = _scopeFactory.CreateScope();
+            using var _dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
             model.Name = model.Name.Trim();
             model.Query = model.Query.Trim();
 
@@ -50,6 +60,9 @@ namespace Time.Series.Anomaly.Detection.Data.Services
 
         public async Task UpdateAsync(MonitorSeries model)
         {
+            using var scope = _scopeFactory.CreateScope();
+            using var _dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
             model.Name = model.Name.Trim();
             model.Query = model.Query.Trim();
 
@@ -72,6 +85,8 @@ namespace Time.Series.Anomaly.Detection.Data.Services
             _dbContext.Entry(model).Property(x => x.LowerLimitToDetect).IsModified = true;
             _dbContext.Entry(model).Property(x => x.MinuteDurationForAnomalyDetection).IsModified = true;
             _dbContext.Entry(model).Property(x => x.DoNotAlertAgainWithinMinutes).IsModified = true;
+            _dbContext.Entry(model).Property(x => x.Aggregation).IsModified = true;
+            _dbContext.Entry(model).Property(x => x.Field).IsModified = true;
 
             await _dbContext.SaveChangesAsync();
         }
@@ -79,6 +94,9 @@ namespace Time.Series.Anomaly.Detection.Data.Services
 
         public async Task DeleteDataAsync(long id)
         {
+            using var scope = _scopeFactory.CreateScope();
+            using var _dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
             var data = _dbContext.MonitorSeriesData.Where(u => u.MonitorSeriesID == id);
             _dbContext.MonitorSeriesData.RemoveRange(data);
 
@@ -91,6 +109,9 @@ namespace Time.Series.Anomaly.Detection.Data.Services
 
         public async Task UpdateSensitivityAsync(long id, int sensitivity)
         {
+            using var scope = _scopeFactory.CreateScope();
+            using var _dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
             if (sensitivity<1 || sensitivity > 100)
             {
                 throw new Exception("Sensitivity acceptable range is fron 1-100");
@@ -107,6 +128,9 @@ namespace Time.Series.Anomaly.Detection.Data.Services
 
         public async Task DeleteAsync(MonitorSeries model)
         {
+            using var scope = _scopeFactory.CreateScope();
+            using var _dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
             var item = _dbContext.MonitorSeries.Single(x => x.ID == model.ID);
 
             _dbContext.MonitorSeries.Remove(item);

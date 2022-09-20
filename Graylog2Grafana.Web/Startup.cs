@@ -1,5 +1,4 @@
 using Graylog2Grafana.Abstractions;
-using Graylog2Grafana.Models.Configuration;
 using Graylog2Grafana.Services;
 using Graylog2Grafana.Workers;
 using Microsoft.AspNetCore.Builder;
@@ -38,9 +37,6 @@ namespace Graylog2Grafana.Web
                       .ReadFrom.Configuration(Configuration, "Serilog")
                       .CreateLogger();
 
-            services
-            .Configure<SlackConfiguration>(Configuration.GetSection("Slack"));
-
             var filesDirectory = new DirectoryInfo(Configuration.GetValue<string>("Configuration:FilesPath"));
 
             if (!filesDirectory.Exists)
@@ -50,7 +46,7 @@ namespace Graylog2Grafana.Web
 
             services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =>
             {
-                options.UseSqlite($"Data Source={Path.Combine(filesDirectory.FullName, "Graylog2Grafana_v3.db")}");
+                options.UseSqlite($"Data Source={Path.Combine(filesDirectory.FullName, "Graylog2Grafana_v4.db")}");
             });
 
             services.AddIdentity<IdentityUser, IdentityRole>()
@@ -89,13 +85,14 @@ namespace Graylog2Grafana.Web
             .AddSingleton<INotificationService, SlackNotificationService>()
             .AddSingleton<IAnomalyDetectionService, AnomalyDetectionService>()
             .AddSingleton<IMonitorSeriesDataAnomalyDetectionService, MonitorSeriesDataAnomalyDetectionService>()
+            .AddSingleton<INotificationSlackService, NotificationSlackService>()
+            .AddSingleton<IMonitorSourcesService, MonitorSourcesService>()
+            .AddSingleton<IMonitorSeriesService, MonitorSeriesService>()
+            .AddSingleton<IMonitorSeriesDataService, MonitorSeriesDataService>()
+            .AddSingleton<IAnomalyDetectionDataService, AnomalyDetectionDataService>()
+            .AddSingleton<IGrafanaSimpleJsonPluginService, GrafanaSimpleJsonPluginService>()
             // Scoped
             .AddScoped<IUsersService, UsersService>()
-            .AddScoped<IMonitorSourcesService, MonitorSourcesService>()
-            .AddScoped<IMonitorSeriesService, MonitorSeriesService>()
-            .AddScoped<IMonitorSeriesDataService, MonitorSeriesDataService>()
-            .AddScoped<IAnomalyDetectionDataService, AnomalyDetectionDataService>()
-            .AddScoped<IGrafanaSimpleJsonPluginService, GrafanaSimpleJsonPluginService>()
             // Hosted services
             .AddHostedService<LoadDataWorker>()
             .AddHostedService<AnomalyDetectionWorker>();
@@ -109,9 +106,7 @@ namespace Graylog2Grafana.Web
 
             services.AddHttpClient("Slack", c =>
             {
-                var slackConfiguration = Configuration.GetSection("Slack").Get<SlackConfiguration>();
                 c.BaseAddress = new Uri("https://slack.com");
-                c.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", slackConfiguration.BearerToken);
             });
         }
 

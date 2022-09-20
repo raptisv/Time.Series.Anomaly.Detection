@@ -21,7 +21,16 @@ namespace Graylog2Grafana.Web.Controllers
         [HttpGet]
         public IActionResult Create()
         {
-            return View("AddEdit", null);
+            var model = new MonitorSources()
+            {
+                ID = 0,
+                Enabled = true,
+                LoadDataIntervalSeconds = 60,
+                DataRetentionInMinutes = 1440,
+                DetectionDelayInMinutes = 2
+            };
+
+            return View("AddEdit", model);
         }
 
         [HttpPost]

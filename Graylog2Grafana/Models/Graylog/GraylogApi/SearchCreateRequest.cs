@@ -7,7 +7,8 @@ namespace Graylog2Grafana.Models.Graylog.GraylogApi
 {
     public class SearchCreateRequest
     {
-        public SearchCreateRequest(string id, List<(long queryId, string Query, DateTime DateFrom, DateTime DateTo)> queries, KnownIntervals interval)
+        public SearchCreateRequest(string id, List<(long queryId, string Query, DateTime DateFrom, DateTime DateTo, string Aggregation, string Field)> queries,
+            KnownIntervals interval)
         {
             Id = id;
             Queries = new List<QueryItem>()
@@ -56,6 +57,12 @@ namespace Graylog2Grafana.Models.Graylog.GraylogApi
         {
             [JsonProperty("type")]
             public string Type { get; set; }
+
+            [JsonProperty("id")]
+            public string Id { get; set; }
+
+            [JsonProperty("field")]
+            public string Field { get; set; }
         }
 
         public class Interval
@@ -81,8 +88,30 @@ namespace Graylog2Grafana.Models.Graylog.GraylogApi
 
         public class SearchType
         {
-            public SearchType(string queryId, string query, DateTime from, DateTime to, KnownIntervals interval)
+            public SearchType(
+                string queryId,
+                string query,
+                DateTime from,
+                DateTime to,
+                KnownIntervals interval,
+                string aggregationType,
+                string field)
             {
+                var series = new Series()
+                {
+                    Type = "count"
+                };
+
+                if (!string.IsNullOrWhiteSpace(field))
+                {
+                    series = new Series()
+                    {
+                        Type = aggregationType.ToString(),
+                        Id = $"{aggregationType}({field.Trim()})",
+                        Field = field.Trim()
+                    };
+                }
+
                 Id = queryId;
                 Timerange = new TimerangeAbsolute()
                 {
@@ -97,10 +126,7 @@ namespace Graylog2Grafana.Models.Graylog.GraylogApi
                 };
                 Series = new List<Series>()
                 {
-                    new Series()
-                    {
-                        Type = "count"
-                    }
+                    series
                 };
                 Rollup = true;
                 Type = "pivot";
@@ -168,7 +194,7 @@ namespace Graylog2Grafana.Models.Graylog.GraylogApi
 
         public class QueryItem
         {
-            public QueryItem(List<(long queryId, string Query, DateTime DateFrom, DateTime DateTo)> queries, KnownIntervals interval)
+            public QueryItem(List<(long queryId, string Query, DateTime DateFrom, DateTime DateTo, string Aggregation, string Field)> queries, KnownIntervals interval)
             {
                 Id = "result_id";
                 QueryData = new Query()
@@ -186,7 +212,7 @@ namespace Graylog2Grafana.Models.Graylog.GraylogApi
                     Type = "or",
                     Filters = new List<object>()
                 };
-                SearchTypes = queries.Select(x => new SearchType(x.queryId.ToString(), x.Query, x.DateFrom, x.DateTo, interval)).ToList();
+                SearchTypes = queries.Select(x => new SearchType(x.queryId.ToString(), x.Query, x.DateFrom, x.DateTo, interval, x.Aggregation, x.Field)).ToList();
             }
 
             [JsonProperty("id")]

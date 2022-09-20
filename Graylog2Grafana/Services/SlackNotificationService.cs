@@ -1,13 +1,13 @@
 ﻿using Graylog2Grafana.Abstractions;
-using Graylog2Grafana.Models.Configuration;
-using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Serilog;
 using System;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 using System.Web;
+using Time.Series.Anomaly.Detection.Data.Abstractions;
 using Time.Series.Anomaly.Detection.Data.Models;
 using Time.Series.Anomaly.Detection.Data.Models.Enums;
 
@@ -16,17 +16,17 @@ namespace Graylog2Grafana.Services
     public class SlackNotificationService : INotificationService
     {
         private readonly ILogger _logger;
-        private readonly IOptions<SlackConfiguration> _slackConfiguration;
-        private readonly HttpClient _httpClient;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly INotificationSlackService _notificationSlackService;
 
         public SlackNotificationService(
             ILogger logger,
-            IOptions<SlackConfiguration> slackConfiguration, 
-            IHttpClientFactory clientFactory)
+            IHttpClientFactory httpClientFactory,
+            INotificationSlackService notificationSlackService)
         {
             _logger = logger;
-            _slackConfiguration = slackConfiguration;
-            _httpClient = clientFactory.CreateClient("Slack");
+            _httpClientFactory = httpClientFactory;
+            _notificationSlackService = notificationSlackService;
         }
 
         public async Task NotifyAsync(
@@ -37,8 +37,11 @@ namespace Graylog2Grafana.Services
         {
             try
             {
-                if (!_slackConfiguration.Value.Enabled)
+                var slackConfig = await _notificationSlackService.GetAsync();
+
+                if (!slackConfig.Enabled)
                 {
+                    _logger.Warning($"Caution | Notification 'Slack' is not enabled");
                     return;
                 }
 
@@ -48,18 +51,14 @@ namespace Graylog2Grafana.Services
                 {
                     case SourceType.Graylog:
                         {
-
                             var graylogBaseUrl = currentMonitor.MonitorSource.Source;
 
                             var graylogUrl = $"{graylogBaseUrl}/search?q={HttpUtility.UrlEncode(currentMonitor.Query)}&rangetype=absolute&from={DateTime.UtcNow.AddMinutes(-10).ToString("yyyy-MM-ddTHH:mm:ss.fffZ")}&to={DateTime.UtcNow.AddMinutes(10).ToString("yyyy-MM-ddTHH:mm:ss.fffZ")}";
 
-                            var percentage = preLastDataInSeries > 0
-                                ? Math.Abs(lastDataInSeries - preLastDataInSeries) / preLastDataInSeries * 100.0
-                                : 100;
-
                             message = anomalyDetected == MonitorType.Downwards
-                                ? $":arrow_down_small: {(int)percentage}% downwards spike on *<{graylogUrl}|{currentMonitor.MonitorSource.Name}-{currentMonitor.Name}>* ({preLastDataInSeries} => {lastDataInSeries})"
-                                : $":arrow_up_small: {(int)percentage}% upwards spike on *<{graylogUrl}|{currentMonitor.MonitorSource.Name}-{currentMonitor.Name}>* ({preLastDataInSeries} => {lastDataInSeries})";
+                                ? $":arrow_down_small: downwards spike on *<{graylogUrl}|{currentMonitor.Name}>* ({preLastDataInSeries} => {lastDataInSeries})"
+                                : $":arrow_up_small: upwards spike on *<{graylogUrl}|{currentMonitor.Name}>* ({preLastDataInSeries} => {lastDataInSeries})";
+
                             break;
                         }
                     default:
@@ -68,15 +67,19 @@ namespace Graylog2Grafana.Services
 
                 StringContent obj = new StringContent(JsonConvert.SerializeObject(new
                 {
-                    channel = _slackConfiguration.Value.Channel,
+                    channel = slackConfig.Channel,
                     text = message,
                 }), Encoding.UTF8, "application/json");
 
-                HttpResponseMessage response = await _httpClient.PostAsync($"/api/chat.postMessage", obj);
+                using (var httpClient = _httpClientFactory.CreateClient("Slack"))
+                {
+                    httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", slackConfig.BearerToken);
 
-                response.EnsureSuccessStatusCode();
-
-                await response.Content.ReadAsStringAsync();
+                    using (var response = await httpClient.PostAsync($"/api/chat.postMessage", obj))
+                    {
+                        response.EnsureSuccessStatusCode();
+                    }
+                }
             }
             catch(Exception ex)
             {

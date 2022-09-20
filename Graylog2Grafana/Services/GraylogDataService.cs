@@ -29,6 +29,11 @@ namespace Graylog2Grafana.Services
         private readonly IMonitorSeriesDataAnomalyDetectionService _dataAnomalyDetectionService;
 
         private static string _graylogSearchId = Utils.GetRandomHexNumber(24);
+        private static JsonSerializerSettings _jsonSerializerSettings = new JsonSerializerSettings()
+        {
+            NullValueHandling = NullValueHandling.Ignore,
+            Formatting = Formatting.None
+        };
 
         /// <summary>
         /// Helper property to check once, if the current graylog source supports View Search Endpoint or not.
@@ -53,13 +58,19 @@ namespace Graylog2Grafana.Services
         {
             using (IServiceScope scope = _serviceProvider.CreateScope())
             {
-                IMonitorSourcesService monitorSourcesService = scope.ServiceProvider.GetRequiredService<IMonitorSourcesService>();
+                var monitorSourcesService = scope.ServiceProvider.GetRequiredService<IMonitorSourcesService>();
 
                 var graylogSources = (await monitorSourcesService.GetAllAsync())
                 .Where(x => x.SourceType == SourceType.Graylog);
 
                 foreach (var graylogSource in graylogSources)
                 {
+                    if (!graylogSource.Enabled)
+                    {
+                        _logger.Warning($"Caution | Source '{graylogSource.Name}' is not enabled");
+                        continue;
+                    }
+
                     var now = DateTime.UtcNow;
 
                     if (graylogSource.LastTimestamp.AddSeconds(graylogSource.LoadDataIntervalSeconds) <= now)
@@ -87,6 +98,12 @@ namespace Graylog2Grafana.Services
 
                 foreach (var graylogSource in graylogSources)
                 {
+                    if (!graylogSource.Enabled)
+                    {
+                        _logger.Warning($"Caution | Source '{graylogSource.Name}' is not enabled");
+                        continue;
+                    }
+
                     var sourceResult = await DetectAndPersistAnomaliesAsync(scope, graylogSource);
 
                     result.AddRange(sourceResult);
@@ -96,9 +113,7 @@ namespace Graylog2Grafana.Services
             }
         }
 
-        private async Task LoadDataAsync(
-            IServiceScope scope,
-            MonitorSources graylogSource)
+        private async Task LoadDataAsync(IServiceScope scope, MonitorSources graylogSource)
         {
             // At first (and only once) define the source api (if it supports View Search Endpoint)
             var isSourceDefined = _graylogVersionSupportsViewSearchEndpoint.ContainsKey(graylogSource.ID);
@@ -114,8 +129,8 @@ namespace Graylog2Grafana.Services
             var monitorSeriesItems = await monitorSeriesService.GetAllAsync();
 
             // 1. Gather queries to be executed
-            List<(long MonitorSeriesId, string Query, DateTime DateFrom, DateTime DateTo)> queries =
-                new List<(long MonitorSeriesId, string Query, DateTime DateFrom, DateTime DateTo)>();
+            List<(long MonitorSeriesId, string Query, DateTime DateFrom, DateTime DateTo, string Aggregation, string Property)> queries =
+                new List<(long MonitorSeriesId, string Query, DateTime DateFrom, DateTime DateTo, string Aggregation, string Property)>();
 
             foreach (var monitorSeries in monitorSeriesItems)
             {
@@ -126,7 +141,7 @@ namespace Graylog2Grafana.Services
                 DateTime dtFrom = Utils.TruncateToMinute(DateTime.UtcNow.AddMinutes(-minutesBack));
                 DateTime dtTo = Utils.TruncateToMinute(DateTime.UtcNow.AddMinutes(1));
 
-                queries.Add((monitorSeries.ID, monitorSeries.Query, dtFrom, dtTo));
+                queries.Add((monitorSeries.ID, monitorSeries.Query, dtFrom, dtTo, monitorSeries.Aggregation, monitorSeries.Field));
             }
 
             if (!queries.Any())
@@ -202,13 +217,9 @@ namespace Graylog2Grafana.Services
 
                 if (anomalyDetected?.AnomalyDetectedAtLatestTimeStamp ?? false)
                 {
-                    var percentage = anomalyDetected.PrelastDataInSeries > 0
-                            ? Math.Abs(anomalyDetected.LastDataInSeries - anomalyDetected.PrelastDataInSeries) / anomalyDetected.PrelastDataInSeries * 100.0
-                            : 100;
-
                     var comment = anomalyDetected.MonitorType == MonitorType.Downwards
-                        ? $"{(int)percentage}% downwards spike on {monitorSeries.Name} ({anomalyDetected.PrelastDataInSeries} => {anomalyDetected.LastDataInSeries})"
-                        : $"{(int)percentage}% upwards spike on {monitorSeries.Name} ({anomalyDetected.PrelastDataInSeries} => {anomalyDetected.LastDataInSeries})";
+                        ? $"Downwards spike on {monitorSeries.Name} ({anomalyDetected.PrelastDataInSeries} => {anomalyDetected.LastDataInSeries})"
+                        : $"Upwards spike on {monitorSeries.Name} ({anomalyDetected.PrelastDataInSeries} => {anomalyDetected.LastDataInSeries})";
 
                     // Persist
 
@@ -261,8 +272,8 @@ namespace Graylog2Grafana.Services
 
         private async Task<bool> GraylogSupportsViewSearchEndpointAsync(MonitorSources graylogSource)
         {
-            List<(long MonitorSeriesId, string Query, DateTime DateFrom, DateTime DateTo)> dummyQueries =
-                       new List<(long MonitorSeriesId, string Query, DateTime DateFrom, DateTime DateTo)>();
+            List<(long MonitorSeriesId, string Query, DateTime DateFrom, DateTime DateTo, string Aggregation, string Property)> dummyQueries =
+                       new List<(long MonitorSeriesId, string Query, DateTime DateFrom, DateTime DateTo, string Aggregation, string Property)>();
 
             // If that request succeeds, then it is supported
             var response = await GraylogQueryViewExecuteAsync(graylogSource, KnownIntervals.minute, dummyQueries);
@@ -279,11 +290,11 @@ namespace Graylog2Grafana.Services
             return response.Success;
         }
 
-        private async Task<(bool Success, Dictionary<string, Dictionary<long, int>> Data)> GraylogQueryHistogramAsync(
+        private async Task<(bool Success, Dictionary<string, Dictionary<long, decimal>> Data)> GraylogQueryHistogramAsync(
             MonitorSources graylogSource,
-            List<(long MonitorSeriesId, string Query, DateTime DateFrom, DateTime DateTo)> queries)
+            List<(long MonitorSeriesId, string Query, DateTime DateFrom, DateTime DateTo, string Aggregation, string Property)> queries)
         {
-            Dictionary<string, Dictionary<long, int>> result = new Dictionary<string, Dictionary<long, int>>();
+            Dictionary<string, Dictionary<long, decimal>> result = new Dictionary<string, Dictionary<long, decimal>>();
 
             foreach (var query in queries)
             {
@@ -301,7 +312,7 @@ namespace Graylog2Grafana.Services
         /// <summary>
         /// Supported from graylog versions older than 4
         /// </summary>
-        private async Task<(bool Success, Dictionary<long, int> Data)> GraylogQueryHistogramAsync(
+        private async Task<(bool Success, Dictionary<long, decimal> Data)> GraylogQueryHistogramAsync(
           MonitorSources graylogSource,
           string query,
           KnownIntervals interval,
@@ -345,24 +356,24 @@ namespace Graylog2Grafana.Services
                     {
                         string strResult = await content.ReadAsStringAsync();
 
-                        return (true, JsonConvert.DeserializeAnonymousType(strResult, new { results = new Dictionary<long, int>() }).results);
+                        return (true, JsonConvert.DeserializeAnonymousType(strResult, new { results = new Dictionary<long, decimal>() }).results);
                     }
                 }
             }
             catch (Exception ex)
             {
                 _logger.Error(ex, $"Error loading Graylog query '{query}' | Error {ex.Message}");
-                return (false, new Dictionary<long, int>());
+                return (false, new Dictionary<long, decimal>());
             }
         }
 
         /// <summary>
         /// Supported from graylog version 3.3 and above
         /// </summary>
-        private async Task<(bool Success, Dictionary<string, Dictionary<long, int>> Data)> GraylogQueryViewExecuteAsync(
+        private async Task<(bool Success, Dictionary<string, Dictionary<long, decimal>> Data)> GraylogQueryViewExecuteAsync(
           MonitorSources graylogSource,
           KnownIntervals interval,
-          List<(long MonitorSeriesId, string Query, DateTime DateFrom, DateTime DateTo)> queries)
+          List<(long MonitorSeriesId, string Query, DateTime DateFrom, DateTime DateTo, string Aggregation, string Property)> queries)
         {
             try
             {
@@ -373,7 +384,9 @@ namespace Graylog2Grafana.Services
 
                 var searchCreateRequest = new SearchCreateRequest(_graylogSearchId, queries, interval);
 
-                var searchCreateRequestPostBody = new StringContent(JsonConvert.SerializeObject(searchCreateRequest), Encoding.UTF8, "application/json");
+                var strRequest = JsonConvert.SerializeObject(searchCreateRequest, _jsonSerializerSettings);
+
+                var searchCreateRequestPostBody = new StringContent(strRequest, Encoding.UTF8, "application/json");
 
                 using (HttpResponseMessage searchCreateResponse = await _httpClient.PostAsync($"/api/views/search", searchCreateRequestPostBody))
                 {
@@ -396,15 +409,15 @@ namespace Graylog2Grafana.Services
                                 throw new Exception("Graylog execution not done");
                             }
 
-                            Dictionary<string, Dictionary<long, int>> result = new Dictionary<string, Dictionary<long, int>>();
+                            Dictionary<string, Dictionary<long, decimal>> result = new Dictionary<string, Dictionary<long, decimal>>();
 
                             foreach (var searchType in searchExecuteResult.Results.ResultId.SearchTypes)
                             {
-                                Dictionary<long, int> resultInner = new Dictionary<long, int>();
+                                Dictionary<long, decimal> resultInner = new Dictionary<long, decimal>();
 
                                 foreach (var search in searchType.Value.Rows.Where(x => x.Key.Any() && x.Values.Any()))
                                 {
-                                    resultInner.Add(Utils.GetUnixTimestamp(search.Key.First()), search.Values.First().Value);
+                                    resultInner.Add(Utils.GetUnixTimestamp(search.Key.First()), search.Values.First().Value ?? 0);
                                 }
 
                                 result.Add(searchType.Key, resultInner);
@@ -418,7 +431,7 @@ namespace Graylog2Grafana.Services
             catch (Exception ex)
             {
                 _logger.Error(ex, $"Error loading Graylog query | Error {ex.Message}");
-                return (false, new Dictionary<string, Dictionary<long, int>>());
+                return (false, new Dictionary<string, Dictionary<long, decimal>>());
             }
         }
     }

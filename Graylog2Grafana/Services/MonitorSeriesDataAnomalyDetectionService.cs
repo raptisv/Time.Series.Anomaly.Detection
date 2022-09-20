@@ -37,7 +37,7 @@ namespace Graylog2Grafana.Services
             }
 
             var rowData = monitorSeriesData
-                .Select(x => new RowDataItem() { Timestamp = x.Timestamp, Count = x.Count })
+                .Select(x => new RowDataItem() { Timestamp = x.Timestamp, Count = Convert.ToDouble(x.Value) })
                 .OrderBy(x => x.Timestamp);
 
             var result = _anomalyDetectionService.Detect(rowData, monitorSeries.Sensitivity);

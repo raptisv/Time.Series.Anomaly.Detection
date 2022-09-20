@@ -15,12 +15,13 @@ function deleteSeriesData(itemId) {
             headers: {
                 'Content-Type': 'application/json'
             },
-        })
-            .then(data => alert('Data cleared'));
+        });
     }
 }
 
 $(document).ready(function () {
+
+    $(".checkbox.readonly").click(function () { return false; });
 
     $('#btn-upload-definitions').click(function () {
 

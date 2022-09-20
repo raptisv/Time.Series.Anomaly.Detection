@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,15 +12,18 @@ namespace Time.Series.Anomaly.Detection.Data.Services
 {
     public class AnomalyDetectionDataService : IAnomalyDetectionDataService
     {
-        private readonly ApplicationDbContext _dbContext;
+        private readonly IServiceScopeFactory _scopeFactory;
 
-        public AnomalyDetectionDataService(ApplicationDbContext dbContext)
+        public AnomalyDetectionDataService( IServiceScopeFactory scopeFactory)
         {
-            _dbContext = dbContext;
+            _scopeFactory = scopeFactory;
         }
 
         public async Task<bool> CreateIfNotAlreadyExistsAsync(long monitorSeriesID, DateTime timeStamp, MonitorType type, string comments)
         {
+            using var scope = _scopeFactory.CreateScope();
+            using var _dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
             var sameAlertExists = await ExistsByMonitorSeriesAndTimestampAsync(monitorSeriesID, timeStamp);
 
             if (!sameAlertExists)
@@ -43,6 +47,9 @@ namespace Time.Series.Anomaly.Detection.Data.Services
 
         public async Task<bool> ExistsByMonitorSeriesAndTimestampAsync(long monitorSeriesID, DateTime timestamp)
         {
+            using var scope = _scopeFactory.CreateScope();
+            using var _dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
             return (await _dbContext.AnomalyDetectionData
                             .Where(x => x.MonitorSeriesID == monitorSeriesID && x.Timestamp == timestamp)
                             .ToListAsync())
@@ -51,6 +58,9 @@ namespace Time.Series.Anomaly.Detection.Data.Services
 
         public async Task<List<AnomalyDetectionData>> GetInRangeAsync(List<long> monitorSeriesIds, DateTime from, DateTime to)
         {
+            using var scope = _scopeFactory.CreateScope();
+            using var _dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
             return await _dbContext.AnomalyDetectionData
                             .Include(x => x.MonitorSeries)
                             .Where(x => monitorSeriesIds.Contains(x.MonitorSeriesID) && x.Timestamp >= from && x.Timestamp <= to)
@@ -59,6 +69,9 @@ namespace Time.Series.Anomaly.Detection.Data.Services
 
         public async Task<List<AnomalyDetectionData>> GetInRangeAsync(MonitorType type, DateTime from, DateTime to)
         {
+            using var scope = _scopeFactory.CreateScope();
+            using var _dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
             return await _dbContext.AnomalyDetectionData
                             .Include(x => x.MonitorSeries)
                             .Where(x => x.MonitorType == type && x.Timestamp >= from && x.Timestamp <= to)
@@ -67,6 +80,9 @@ namespace Time.Series.Anomaly.Detection.Data.Services
 
         public async Task<AnomalyDetectionData> GetLatestForSeriesAsync(long monitorSeriesId)
         {
+            using var scope = _scopeFactory.CreateScope();
+            using var _dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
             return await _dbContext.AnomalyDetectionData
                             .Where(x => x.MonitorSeriesID == monitorSeriesId)
                             .OrderByDescending(x => x.Timestamp)

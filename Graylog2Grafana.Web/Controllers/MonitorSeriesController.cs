@@ -1,6 +1,7 @@
 ﻿using Graylog2Grafana.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -19,26 +20,34 @@ namespace Graylog2Grafana.Web.Controllers
         private readonly IMonitorSourcesService _monitorSourcesService;
         private readonly IMonitorSeriesDataService _monitorSeriesDataService;
         private readonly IMonitorSeriesDataAnomalyDetectionService _monitorSeriesDataAnomalyDetectionService;
-        private readonly ApplicationDbContext _dbContext;
+        private readonly IServiceScopeFactory _scopeFactory;
 
         public MonitorSeriesController(
             IMonitorSeriesService monitorSeriesService,
             IMonitorSourcesService monitorSourcesService,
             IMonitorSeriesDataService monitorSeriesDataService,
             IMonitorSeriesDataAnomalyDetectionService monitorSeriesDataAnomalyDetectionService,
-            ApplicationDbContext dbContext)
+            ApplicationDbContext dbContext,
+            IServiceScopeFactory scopeFactory)
         {
             _monitorSeriesService = monitorSeriesService;
             _monitorSourcesService = monitorSourcesService;
             _monitorSeriesDataService = monitorSeriesDataService;
             _monitorSeriesDataAnomalyDetectionService = monitorSeriesDataAnomalyDetectionService;
-            _dbContext = dbContext;
+            _scopeFactory = scopeFactory;
         }
 
         [HttpGet]
         public IActionResult Create()
         {
-            return View("AddEdit", null);
+            var model = new MonitorSeries()
+            {
+                ID = 0,
+                MinuteDurationForAnomalyDetection = 60,
+                Sensitivity = 50
+            };
+
+            return View("AddEdit", model);
         }
 
         [HttpPost]
@@ -160,12 +169,10 @@ namespace Graylog2Grafana.Web.Controllers
         {
             try
             {
-                var allSources = await _monitorSourcesService.GetAllAsync();
                 var allSeries = await _monitorSeriesService.GetAllAsync();
 
                 var result = new ImportExportObject()
                 {
-                    Sources = allSources,
                     Series = allSeries
                 };
 
@@ -186,29 +193,58 @@ namespace Graylog2Grafana.Web.Controllers
         {
             try
             {
-                if (model == null)
+
+                if (model == null )
                 {
                     throw new Exception("Post body cannot be empty");
                 }
 
+                if (model.Series == null || !model.Series.Any())
+                {
+                    throw new Exception("Series cannot be empty");
+                }
+
+                var existingSources = await _monitorSourcesService.GetAllAsync();
+                var existingSeries = await _monitorSeriesService.GetAllAsync();
+
+                using var scope = _scopeFactory.CreateScope();
+                using var _dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
                 using (var transaction = _dbContext.Database.BeginTransaction())
                 {
-                    var existingSources = await _monitorSourcesService.GetAllAsync();
-                    foreach (var incoming in model.Sources)
+                    if (!existingSources.Any())
                     {
-                        if (!existingSources.Any(x => x.ID == incoming.ID))
-                        {
-                            await _monitorSourcesService.CreateAsync(incoming);
-                        }
+                        throw new Exception($"At least one source must be present!");
                     }
 
-                    var existingSeries = await _monitorSeriesService.GetAllAsync();
-                    foreach (var incoming in model.Series)
+                    for(int i=0;i< model.Series.Count;i++)
                     {
-                        if (!existingSeries.Any(x => x.ID == incoming.ID))
+                        var incoming = model.Series[i];
+                        // Set the ID
+                        incoming.ID = existingSeries.Select(s => s.ID).DefaultIfEmpty(0).Max() + i + 1;
+                        incoming.Name = incoming.Name.Trim().Replace(" ", "");
+                        if (incoming.MonitorSourceID > 0)
                         {
-                            await _monitorSeriesService.CreateAsync(incoming);
+                            // If source does not exist
+                            if (!existingSources.Any(s => s.ID == incoming.MonitorSourceID))
+                            {
+                                throw new Exception($"Source with ID {incoming.MonitorSourceID} not found!");
+                            }
                         }
+                        else
+                        {
+                            // If source not set, take the first
+                            incoming.MonitorSourceID = existingSources.First().ID;
+                        }
+
+                        if (existingSeries.Any(x => x.Name.Trim().ToLower().Equals(incoming.Name.Trim().ToLower())))
+                        {
+                            throw new Exception($"A definition with name '{incoming.Name.Trim()}' already exists");
+                        }
+
+                        _dbContext.MonitorSeries.Add(incoming);
+
+                        await _dbContext.SaveChangesAsync();
                     }
 
                     transaction.Commit();
@@ -216,7 +252,7 @@ namespace Graylog2Grafana.Web.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { Error = ex.Message });
+                return BadRequest(new { Error = ex.InnerException is null ? ex.Message : ex.InnerException.Message  });
             }
 
             return Ok();
@@ -224,7 +260,6 @@ namespace Graylog2Grafana.Web.Controllers
 
         public class ImportExportObject
         {
-            public List<MonitorSources> Sources { get; set; }
             public List<MonitorSeries> Series { get; set; }
         }
 

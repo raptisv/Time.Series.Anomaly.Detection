@@ -13,6 +13,8 @@
 
     var sources = await _monitorSourcesService.GetAllAsync();
     List<SelectListItem> availableSources = sources.Select(x => new SelectListItem { Text = x.Name, Value = x.ID.ToString() }).ToList();
+
+    List<SelectListItem> availableAggregations = new List<string>() { "count", "avg", "sum", "min", "max" }.Select(x => new SelectListItem { Text = x, Value = x }).ToList();
 }
 
 <div class="row clearfix">
@@ -42,24 +44,24 @@
                                 @Html.ValidationMessageFor(m => m.Name, "", new { @class = "text-danger" })
                             </div>
                             <div class="form-group">
-                                <label for="Description" class="form-label mt-4">Description (optional)</label>
-                                @Html.TextBoxFor(m => m.Description, new { @class = "form-control" })
-                                @Html.ValidationMessageFor(m => m.Description, "", new { @class = "text-danger" })
-                            </div>
-                            <div class="form-group">
                                 <label for="Query" class="form-label mt-4">Query</label>
                                 @Html.TextBoxFor(m => m.Query, new { @class = "form-control" })
                                 <div><small class="form-text text-muted">The query to be monitored in Graylog.</small></div>
                                 @Html.ValidationMessageFor(m => m.Query, "", new { @class = "text-danger" })
                             </div>
-                        </div>
-                        <div class="col-12 col-md-6 col-lg-6">
                             <div class="form-group">
                                 <label for="MonitorAnomalyType" class="form-label mt-4">Annotation type</label>
                                 @Html.DropDownListFor(m => m.MonitorType, annotationTypes, null, new { @class = "form-control" })
                                 <div><small class="form-text text-muted">Select which type of anomaly detection you wish to monitor.</small></div>
                                 @Html.ValidationMessageFor(m => m.MonitorType, "", new { @class = "text-danger" })
                             </div>
+                            <div class="form-group">
+                                <label for="Description" class="form-label mt-4">Description (optional)</label>
+                                @Html.TextBoxFor(m => m.Description, new { @class = "form-control" })
+                                @Html.ValidationMessageFor(m => m.Description, "", new { @class = "text-danger" })
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6 col-lg-6">
                             <div class="form-group">
                                 <label for="Sensitivity" class="form-label mt-4">Sensitivity</label>
                                 @Html.TextBoxFor(m => m.Sensitivity, new { @class = "form-control", type = "number", min = "1", max = "100" })
@@ -75,13 +77,13 @@
                             <div class="form-group">
                                 <label for="LowerLimitToDetect" class="form-label mt-4">Lower limit (optional)</label>
                                 @Html.TextBoxFor(m => m.LowerLimitToDetect, new { @class = "form-control", type = "number" })
-                                <div><small class="form-text text-muted">Below that value, you will not be alerted, regarding downwards spikes.</small></div>
+                                <div><small class="form-text text-muted">Below that value, you will not be alerted.</small></div>
                                 @Html.ValidationMessageFor(m => m.LowerLimitToDetect, "", new { @class = "text-danger" })
                             </div>
                             <div class="form-group">
                                 <label for="UpperLimitToDetect" class="form-label mt-4">Upper limit (optional)</label>
                                 @Html.TextBoxFor(m => m.UpperLimitToDetect, new { @class = "form-control", type = "number" })
-                                <div><small class="form-text text-muted">Above that value, you will not be alerted, regarding upwards spikes.</small></div>
+                                <div><small class="form-text text-muted">Above that value, you will not be alerted.</small></div>
                                 @Html.ValidationMessageFor(m => m.UpperLimitToDetect, "", new { @class = "text-danger" })
                             </div>
                             <div class="form-group">
@@ -89,6 +91,19 @@
                                 @Html.TextBoxFor(m => m.DoNotAlertAgainWithinMinutes, new { @class = "form-control", type = "number" })
                                 <div><small class="form-text text-muted">Do not produce alert within the above minutes from the last alert in this series.</small></div>
                                 @Html.ValidationMessageFor(m => m.DoNotAlertAgainWithinMinutes, "", new { @class = "text-danger" })
+                            </div>
+                            <hr/>
+                            <div class="form-group">
+                                <label for="Aggregation" class="form-label mt-4">Aggregation</label>
+                                @Html.DropDownListFor(m => m.Aggregation, availableAggregations, null, new { @class = "form-control" })
+                                <div><small class="form-text text-muted">The aggregation type</small></div>
+                                @Html.ValidationMessageFor(m => m.Aggregation, "", new { @class = "text-danger" })
+                            </div>
+                            <div class="form-group">
+                                <label for="Field" class="form-label mt-4">Field (optional)</label>
+                                @Html.TextBoxFor(m => m.Field, new { @class = "form-control" })
+                                <div><small class="form-text text-muted">The field to aggregate.</small></div>
+                                @Html.ValidationMessageFor(m => m.Field, "", new { @class = "text-danger" })
                             </div>
                         </div>
                     </div>

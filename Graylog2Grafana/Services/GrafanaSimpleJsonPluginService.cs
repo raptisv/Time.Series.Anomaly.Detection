@@ -92,7 +92,7 @@ namespace Graylog2Grafana.Abstractions
                                         Target = reqTarget.Target,
                                         Datapoints = monitorSeriesData.Select(x => new List<object>()
                                         {
-                                            x.Count, Utils.GetUnixTimestampMilliseconds(x.Timestamp)
+                                            x.Value, Utils.GetUnixTimestampMilliseconds(x.Timestamp)
                                         }).ToList()
                                     });
                                 }

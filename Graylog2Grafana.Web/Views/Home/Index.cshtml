@@ -27,9 +27,10 @@
                     <small class="text-muted">@type.Text</small>
                 </h4>
             </div>
-            <table class="table table-hover mt-3">
+            <table class="table table-hover mt-3 table-dark">
                 <thead>
                     <tr>
+                        <th scope="col">Enabled</th>
                         <th scope="col">Name</th>
                         <th scope="col">Source</th>
                         <th scope="col">Username</th>
@@ -45,6 +46,7 @@
                     @foreach (var item in Model.Sources.Where(x => ((int)x.SourceType).ToString() == type.Value))
                     {
                         <tr>
+                            <th scope="row"><input type="checkbox" @(item.Enabled ? "checked='checked'" : "") class="checkbox readonly" /></th>
                             <th scope="row">@item.Name</th>
                             <td><a href="@(item.Source.Trim('/'))/search" style="text-decoration:none;" target="_blank">@item.Source</a></td>
                             <td>@(string.IsNullOrWhiteSpace(item.Username) ? "N/A" : item.Username)</td>
@@ -86,7 +88,7 @@ else
                     <small class="text-muted">@type.Text</small>
                 </h4>
             </div>
-            <table class="table table-hover mt-3">
+            <table class="table table-hover mt-3 table-dark">
                 <thead>
                     <tr>
                         <th scope="col">Name</th>
@@ -97,6 +99,7 @@ else
                         <th scope="col" title="The value that below it, you will not be notified if any anomaly is detected">Lower limit</th>
                         <th scope="col" title="The value that above it, you will not be notified if any anomaly is detected">Upper limit</th>
                         <th scope="col" title="Do not produce alert within given minutes from the last alert in this series">No alert for</th>
+                        <th scope="col">Aggregation</th>
                         <th scope="col"></th>
                         <th scope="col"></th>
                         <th scope="col"></th>
@@ -117,6 +120,7 @@ else
                             <td>@item.LowerLimitToDetect</td>
                             <td>@item.UpperLimitToDetect</td>
                             <td>@item.DoNotAlertAgainWithinMinutes</td>
+                            <td>@(item.Aggregation + (string.IsNullOrWhiteSpace(item.Field) ? "" : $"({item.Field})"))</td>
                             <td>
                                 <a type="button" title="Preview" class="btn btn-secondary btn-sm" href="@Url.Action("Preview", "MonitorSeries", new { id = item.ID })"><i class="bi bi-search"></i></a>
                             </td>

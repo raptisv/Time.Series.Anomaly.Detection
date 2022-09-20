@@ -1,11 +1,13 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Time.Series.Anomaly.Detection.Data.Models.Notifications;
 
 namespace Time.Series.Anomaly.Detection.Data.Models
 {
     public class ApplicationDbContext : IdentityDbContext<IdentityUser>
     {
+        public DbSet<NotificationSlack> SlackNotification { get; set; }
         public DbSet<MonitorSources> MonitorSources { get; set; }
         public DbSet<MonitorSeries> MonitorSeries { get; set; }
         public DbSet<MonitorSeriesData> MonitorSeriesData { get; set; }
@@ -27,6 +29,8 @@ namespace Time.Series.Anomaly.Detection.Data.Models
             builder.Entity<MonitorSources>().ToTable("MonitorSources").HasKey(p => p.ID);
             builder.Entity<MonitorSources>().HasIndex(p => p.Name).IsUnique();
 
+            builder.Entity<NotificationSlack>().ToTable("SlackNotification").HasKey(p => p.ID);
+
             builder.Entity<MonitorSeries>().ToTable("MonitorSeries").HasKey(p => p.ID);
             builder.Entity<MonitorSeries>().HasOne(p => p.MonitorSource).WithMany(b => b.MonitorSeriesData).HasForeignKey(p => p.MonitorSourceID).IsRequired();
             builder.Entity<MonitorSeries>().HasIndex(p => p.Name).IsUnique();
@@ -40,14 +44,28 @@ namespace Time.Series.Anomaly.Detection.Data.Models
             builder.Entity<AnomalyDetectionData>().HasIndex(p => new { p.MonitorSeriesID, p.Timestamp }).IsUnique();
 
             // Seed 
+            var slackNotification = new NotificationSlack()
+            {
+                ID = 1,
+                Enabled = false,
+                Channel = string.Empty,
+                BearerToken = string.Empty,
+            };
+
+            builder.Entity<NotificationSlack>().HasData(slackNotification);
+
             var firstMonitorSource = new MonitorSources()
             {
                 ID = 1,
+                Enabled = true,
                 Name = "Local",
                 SourceType = Enums.SourceType.Graylog,
                 Source = "http://localhost:9000",
                 Username = "admin",
-                Password = "admin"
+                Password = "admin",
+                DataRetentionInMinutes = 1440,
+                DetectionDelayInMinutes = 2,
+                LoadDataIntervalSeconds = 60
             };
 
             builder.Entity<MonitorSources>().HasData(firstMonitorSource);
@@ -65,7 +83,8 @@ namespace Time.Series.Anomaly.Detection.Data.Models
                     Description = "Initial dummy query",
                     MinuteDurationForAnomalyDetection = 60,
                     DoNotAlertAgainWithinMinutes = null,
-                    MonitorSourceID = firstMonitorSource.ID
+                    MonitorSourceID = firstMonitorSource.ID,
+                    Aggregation = "count"
                 });
 
             // Seed Admin role

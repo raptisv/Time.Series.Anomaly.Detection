@@ -1,0 +1,53 @@
+﻿@using Graylog2Grafana.Web.Models.Helpers;
+@using Time.Series.Anomaly.Detection.Data.Models.Enums;
+@using Time.Series.Anomaly.Detection.Data.Models.Notifications;
+@model NotificationSlack
+@{
+    ViewData["Title"] = "Edit";
+}
+
+<div class="row clearfix">
+    <div class="col-12">
+        <div class="card bg-dark">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    Edit slack settings
+                </h5>
+            </div>
+            <div class="card-body">
+                @using (Html.BeginForm("Edit", "NotificationSlack", new { id = (Model?.ID ?? 0) }, FormMethod.Post, true, new { role = "form" }))
+                {
+                    @Html.HiddenFor(m => m.ID)
+                    <div class="row">
+                        <div class="col-12 col-md-6 col-lg-6">
+                            <div class="form-group">
+                                @Html.CheckBoxFor(m => m.Enabled)
+                                <label for="Enabled" class="form-label mt-4">Enabled</label>
+                                <div><small class="form-text text-muted">Enable or disable Slack notifications.</small></div>
+                                @Html.ValidationMessageFor(m => m.Enabled, "", new { @class = "text-danger" })
+                            </div>
+                            <div class="form-group">
+                                <label for="Channel" class="form-label mt-4">Channel</label>
+                                @Html.TextBoxFor(m => m.Channel, new { @class = "form-control" })
+                                <div><small class="form-text text-muted">The slack channel id. <a href="https://help.socialintents.com/article/148-how-to-find-your-slack-team-id-and-slack-channel-id" target="_blank">More info</a></small></div>
+                                @Html.ValidationMessageFor(m => m.Channel, "", new { @class = "text-danger" })
+                            </div>
+                            <div class="form-group">
+                                <label for="BearerToken" class="form-label mt-4">Bearer token</label>
+                                @Html.TextBoxFor(m => m.BearerToken, new { @class = "form-control" })
+                                <div><small class="form-text text-muted">The bearer token. <a href="https://api.slack.com/authentication/token-types" target="_blank">More info</a></small></div>
+                                @Html.ValidationMessageFor(m => m.BearerToken, "", new { @class = "text-danger" })
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        @Html.ValidationMessage("CustomError", new { @class = "text-danger" })
+                    </div>
+                    <button type="submit" class="btn btn-primary mt-3" title="Save">
+                        <i class="bi bi-upload"></i>
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+</div>

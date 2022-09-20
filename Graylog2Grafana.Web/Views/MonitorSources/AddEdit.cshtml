@@ -24,6 +24,12 @@
                     <div class="row">
                         <div class="col-12 col-md-6 col-lg-6">
                             <div class="form-group">
+                                @Html.CheckBoxFor(m => m.Enabled)
+                                <label for="Enabled" class="form-label mt-4">Enabled</label>
+                                <div><small class="form-text text-muted">Enable or disable the source.</small></div>
+                                @Html.ValidationMessageFor(m => m.Enabled, "", new { @class = "text-danger" })
+                            </div>
+                            <div class="form-group">
                                 <label for="MonitorAnomalyType" class="form-label mt-4">Source type</label>
                                 @Html.DropDownListFor(m => m.SourceType, sourceTypes, null, new { @class = "form-control" })
                                 @Html.ValidationMessageFor(m => m.SourceType, "", new { @class = "text-danger" })

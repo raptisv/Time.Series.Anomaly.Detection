@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,25 +11,34 @@ namespace Time.Series.Anomaly.Detection.Data.Services
 {
     public class MonitorSourcesService : IMonitorSourcesService
     {
-        private readonly ApplicationDbContext _dbContext;
+        private readonly IServiceScopeFactory _scopeFactory;
 
-        public MonitorSourcesService(ApplicationDbContext dbContext)
+        public MonitorSourcesService(IServiceScopeFactory scopeFactory)
         {
-            _dbContext = dbContext;
+            _scopeFactory = scopeFactory;
         }
 
         public async Task<List<MonitorSources>> GetAllAsync()
         {
+            using var scope = _scopeFactory.CreateScope();
+            using var _dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
             return await _dbContext.MonitorSources.ToListAsync();
         }
 
         public async Task<MonitorSources> GetByIdAsync(long id)
         {
+            using var scope = _scopeFactory.CreateScope();
+            using var _dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
             return await _dbContext.MonitorSources.SingleOrDefaultAsync(x => x.ID == id);
         }
 
         public async Task CreateAsync(MonitorSources model)
         {
+            using var scope = _scopeFactory.CreateScope();
+            using var _dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
             model.Name = model.Name.Trim();
 
             var existing = await GetAllAsync();
@@ -45,6 +55,9 @@ namespace Time.Series.Anomaly.Detection.Data.Services
 
         public async Task UpdateAsync(MonitorSources model)
         {
+            using var scope = _scopeFactory.CreateScope();
+            using var _dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
             model.Name = model.Name.Trim();
 
             var existing = await GetAllAsync();
@@ -57,6 +70,7 @@ namespace Time.Series.Anomaly.Detection.Data.Services
             existing.ForEach(x => _dbContext.Entry(x).State = EntityState.Detached);
 
             _dbContext.Attach(model);
+            _dbContext.Entry(model).Property(x => x.Enabled).IsModified = true;
             _dbContext.Entry(model).Property(x => x.Name).IsModified = true;
             _dbContext.Entry(model).Property(x => x.SourceType).IsModified = true;
             _dbContext.Entry(model).Property(x => x.Source).IsModified = true;
@@ -71,6 +85,9 @@ namespace Time.Series.Anomaly.Detection.Data.Services
 
         public async Task UpdateLastTimestampAsync(long id, DateTime timestamp)
         {
+            using var scope = _scopeFactory.CreateScope();
+            using var _dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
             var model = await GetByIdAsync(id);
 
             model.LastTimestamp = timestamp;
@@ -83,6 +100,9 @@ namespace Time.Series.Anomaly.Detection.Data.Services
 
         public async Task DeleteAsync(MonitorSources model)
         {
+            using var scope = _scopeFactory.CreateScope();
+            using var _dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
             var item = _dbContext.MonitorSources.Single(x => x.ID == model.ID);
 
             _dbContext.MonitorSources.Remove(item);
