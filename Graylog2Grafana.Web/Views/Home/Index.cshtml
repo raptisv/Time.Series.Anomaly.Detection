@@ -2,9 +2,14 @@
 @using System.Web
 @using Time.Series.Anomaly.Detection.Data.Models.Enums;
 @using Time.Series.Anomaly.Detection.Data.Models;
+@using Time.Series.Anomaly.Detection.Data.Extensions;
+@using Time.Series.Anomaly.Detection.Data.Abstractions;
+@inject IMonitorGroupsService _monitorGroupsService;
 @model (List<MonitorSources> Sources, List<MonitorSeries> Series)
 @{
     ViewData["Title"] = "Home Page";
+
+    var groups = await _monitorGroupsService.GetAllAsync();
 
     List<SelectListItem> sourceTypes = EnumProvider<SourceType>.GetValues(SourceType.Graylog).Select(x => new SelectListItem { Text = x.Value, Value = x.Key.ToString() }).ToList();
     List<SelectListItem> annotationTypes = EnumProvider<MonitorType>.GetValues(MonitorType.Downwards).Select(x => new SelectListItem { Text = x.Value, Value = x.Key.ToString() }).ToList();
@@ -15,135 +20,215 @@
     <a type="button" class="btn btn-primary btn-sm ms-2" href="#" title="Upload definitions" data-bs-toggle="modal" data-bs-target="#modal_upload_definitions"><i class="bi bi-upload"></i></a>
 </div>
 
-@if (Model.Sources.Any())
-{
-    @foreach (var type in sourceTypes)
-    {
-        if (Model.Sources.Any(x => ((int)x.SourceType).ToString() == type.Value))
-        {
-            <div>
-                <h4>
-                    Source type
-                    <small class="text-muted">@type.Text</small>
-                </h4>
-            </div>
-            <table class="table table-hover mt-3 table-dark">
-                <thead>
-                    <tr>
-                        <th scope="col">Enabled</th>
-                        <th scope="col">Name</th>
-                        <th scope="col">Source</th>
-                        <th scope="col">Username</th>
-                        <th scope="col">Password</th>
-                        <th scope="col">Load interval</th>
-                        <th scope="col" title="The value that below it, you will not be notified if any anomaly is detected">Detection delay</th>
-                        <th scope="col" title="The value that above it, you will not be notified if any anomaly is detected">Data retention</th>
-                        <th scope="col"></th>
-                        <th scope="col"></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var item in Model.Sources.Where(x => ((int)x.SourceType).ToString() == type.Value))
+<div class="accordion" id="accordionSources">
+    <div class="accordion-item">
+    <h2 class="accordion-header" id="headingOne">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSources" aria-expanded="false" aria-controls="collapseSources">
+            Sources
+        </button>
+    </h2>
+    <div id="collapseSources" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#accordionSources" style="">
+        <div class="accordion-body">
+            @if (Model.Sources.Any())
+            {
+                @foreach (var type in sourceTypes)
+                {
+                    if (Model.Sources.Any(x => ((int)x.SourceType).ToString() == type.Value))
                     {
-                        <tr>
-                            <th scope="row"><input type="checkbox" @(item.Enabled ? "checked='checked'" : "") class="checkbox readonly" /></th>
-                            <th scope="row">@item.Name</th>
-                            <td><a href="@(item.Source.Trim('/'))/search" style="text-decoration:none;" target="_blank">@item.Source</a></td>
-                            <td>@(string.IsNullOrWhiteSpace(item.Username) ? "N/A" : item.Username)</td>
-                            <td>@(string.IsNullOrWhiteSpace(item.Password) ? "N/A" : "*****")</td>
-                            <td>@item.LoadDataIntervalSeconds seconds</td>
-                            <td>@item.DetectionDelayInMinutes minutes</td>
-                            <td>@item.DataRetentionInMinutes minutes</td>
-                            <td>
-                                <a type="button" title="Edit" class="btn btn-primary btn-sm" href="@Url.Action("Edit", "MonitorSources", new { id = item.ID })"><i class="bi bi-pencil-square"></i></a>
-                            </td>
-                            <td>
-                                <a type="button" title="Delete" class="btn btn-danger btn-sm" href="@Url.Action("Delete", "MonitorSources", new { id = item.ID })"><i class="bi bi-trash"></i></a>
-                            </td>
-                        </tr>
+                        <div>
+                            <h4>
+                                Source type
+                                <small class="text-muted">@type.Text</small>
+                            </h4>
+                        </div>
+                        <table class="table table-hover mt-3 table-dark">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Enabled</th>
+                                    <th scope="col">Name</th>
+                                    <th scope="col">Source</th>
+                                    <th scope="col">Username</th>
+                                    <th scope="col">Password</th>
+                                    <th scope="col">Load interval</th>
+                                    <th scope="col" title="The value that below it, you will not be notified if any anomaly is detected">Detection delay</th>
+                                    <th scope="col" title="The value that above it, you will not be notified if any anomaly is detected">Data retention</th>
+                                    <th scope="col"></th>
+                                    <th scope="col"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.Sources.Where(x => ((int)x.SourceType).ToString() == type.Value))
+                                {
+                                    <tr>
+                                        <th scope="row"><input type="checkbox" @(item.Enabled ? "checked='checked'" : "") class="checkbox readonly" /></th>
+                                        <th scope="row">@item.Name</th>
+                                        <td><a href="@(item.Source.Trim('/'))/search" style="text-decoration:none;" target="_blank">@item.Source</a></td>
+                                        <td>@(string.IsNullOrWhiteSpace(item.Username) ? "N/A" : item.Username)</td>
+                                        <td>@(string.IsNullOrWhiteSpace(item.Password) ? "N/A" : "*****")</td>
+                                        <td>@item.LoadDataIntervalSeconds seconds</td>
+                                        <td>@item.DetectionDelayInMinutes minutes</td>
+                                        <td>@item.DataRetentionInMinutes minutes</td>
+                                        <td>
+                                            <a type="button" title="Edit" class="btn btn-primary btn-sm" href="@Url.Action("Edit", "MonitorSources", new { id = item.ID })"><i class="bi bi-pencil-square"></i></a>
+                                        </td>
+                                        <td>
+                                            <a type="button" title="Delete" class="btn btn-danger btn-sm" href="@Url.Action("Delete", "MonitorSources", new { id = item.ID })"><i class="bi bi-trash"></i></a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
                     }
-                </tbody>
-            </table>
-        }
-    }
-}
-else
-{
-    <div class="text-muted">No sources found</div>
-}
-
-<div class="mt-3 mb-3 d-flex">
-    <a type="button" class="btn btn-primary btn-sm me-auto" href="@Url.Action("Create", "MonitorSeries")" title="New series monitor"><i class="bi bi-plus-square"></i></a>
+                }
+            }
+            else
+            {
+                <div class="text-muted">No sources found</div>
+            }
+        </div>
+    </div>
+    </div>
 </div>
 
-@if (Model.Series.Any())
-{
-    @foreach (var type in annotationTypes)
+
+<div class="mt-3 mb-3 d-flex">
+    <a type="button" class="btn btn-primary btn-sm me-auto" href="@Url.Action("Create", "MonitorGroups")" title="New group"><i class="bi bi-plus-square"></i></a>
+</div>
+
+<div class="accordion" id="accordionGroups">
+
+    @for(int i=0;i<groups.Count;i++)
     {
-        if (Model.Series.Any(x => ((int)x.MonitorType).ToString() == type.Value))
-        {
-            <div>
-                <h4>
-                    Monitor type
-                    <small class="text-muted">@type.Text</small>
-                </h4>
-            </div>
-            <table class="table table-hover mt-3 table-dark">
-                <thead>
-                    <tr>
-                        <th scope="col">Name</th>
-                        <th scope="col">Source</th>
-                        <th scope="col">Description</th>
-                        <th scope="col" title="The amount of latest minutes to be used in anomaly detection">Steps</th>
-                        <th scope="col">Sensitivity</th>
-                        <th scope="col" title="The value that below it, you will not be notified if any anomaly is detected">Lower limit</th>
-                        <th scope="col" title="The value that above it, you will not be notified if any anomaly is detected">Upper limit</th>
-                        <th scope="col" title="Do not produce alert within given minutes from the last alert in this series">No alert for</th>
-                        <th scope="col">Aggregation</th>
-                        <th scope="col"></th>
-                        <th scope="col"></th>
-                        <th scope="col"></th>
-                        <th scope="col"></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var item in Model.Series.Where(x => ((int)x.MonitorType).ToString() == type.Value))
+        var isGroupSelected = i == 0;
+        var group = groups[i];
+        var groupSeries = Model.Series.Where(x => x.MonitorGroupID == group.ID).OrderBy(x => x.Name);
+
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingOne">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_group_@(group.ID)" aria-expanded="false" aria-controls="collapseSources">
+                    @group.Name
+                </button>
+            </h2>
+            <div id="collapse_group_@(group.ID)" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#accordionGroups" style="">
+                <div class="accordion-body">
+            
+                    <div class="mb-3 d-flex">
+                        <a type="button" class="btn btn-primary btn-sm me-auto" href="@Url.Action("Create", "MonitorSeries", new { group = group.ID })" title="New series"><i class="bi bi-plus-square"></i></a>
+                        <a type="button" class="btn btn-primary btn-sm" href="@Url.Action("Edit", "MonitorGroups", new { id = group.ID })" title="Edit group"><i class="bi bi-pencil-square"></i></a>
+                        <a type="button" class="btn btn-danger btn-sm" style="margin-left: 10px;" href="@Url.Action("Delete", "MonitorGroups", new { id = group.ID })" title="Delete group"><i class="bi bi-trash"></i></a>
+                    </div>
+
+                    @if (groupSeries.Any())
                     {
-                        var graylogUrl = $"{item.MonitorSource.Source.Trim('/')}/search?q={HttpUtility.UrlEncode(item.Query)}";
-                        
-                        <tr>
-                            <th scope="row" title="@item.Query"><a href="@graylogUrl" style="text-decoration: none;" target="_blank">@item.Name</a></th>
-                            <td>@item.MonitorSource.Name</td>
-                            <td>@item.Description</td>
-                            <td>@item.MinuteDurationForAnomalyDetection</td>
-                            <td>@item.Sensitivity</td>
-                            <td>@item.LowerLimitToDetect</td>
-                            <td>@item.UpperLimitToDetect</td>
-                            <td>@item.DoNotAlertAgainWithinMinutes</td>
-                            <td>@(item.Aggregation + (string.IsNullOrWhiteSpace(item.Field) ? "" : $"({item.Field})"))</td>
-                            <td>
-                                <a type="button" title="Preview" class="btn btn-secondary btn-sm" href="@Url.Action("Preview", "MonitorSeries", new { id = item.ID })"><i class="bi bi-search"></i></a>
-                            </td>
-                            <td>
-                                <a type="button" title="Edit" class="btn btn-primary btn-sm" href="@Url.Action("Edit", "MonitorSeries", new { id = item.ID })"><i class="bi bi-pencil-square"></i></a>
-                            </td>
-                            <td>
-                                <a type="button" title="Clear data" class="btn btn-danger btn-sm" href="javascript:deleteSeriesData(@item.ID)"><i class="bi bi-x-circle"></i></a>
-                            </td>
-                            <td>
-                                <a type="button" title="Delete" class="btn btn-danger btn-sm" href="@Url.Action("Delete", "MonitorSeries", new { id = item.ID })"><i class="bi bi-trash"></i></a>
-                            </td>
-                        </tr>
+                        @foreach (var type in annotationTypes)
+                        {
+                             if (groupSeries.Any(x => ((int)x.MonitorType).ToString() == type.Value))
+                            {
+                                <div>
+                                    <h4>
+                                        Monitor type
+                                        <small class="text-muted">@type.Text</small>
+                                    </h4>
+                                </div>
+                                <table class="table table-hover mt-3 table-dark">
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Name</th>
+                                            <th scope="col">Aggregation</th>
+                                            <th scope="col">Group by</th>
+                                            <th scope="col"></th>
+                                            <th scope="col"></th>
+                                            <th scope="col"></th>
+                                            <th scope="col"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var series in groupSeries.Where(x => ((int)x.MonitorType).ToString() == type.Value))
+                                        {
+                                            var hasGrouping = series.AllWithGrouping().Count() > 1;
+
+                                            var graylogUrl = $"{series.MonitorSource.Source.Trim('/')}/search?q={HttpUtility.UrlEncode(series.Query)}";
+
+                                            var description = string.Join("<br/>", new List<string>()
+                                            {
+                                                $"Source: {series.MonitorSource.Name}",
+                                                $"Description: {(string.IsNullOrWhiteSpace(series.Description) ? "N/A" : series.Description)}",
+                                                $"Steps: {series.MinuteDurationForAnomalyDetection}",
+                                                $"Sensitivity: {series.Sensitivity}",
+                                                $"Lower limit: {(series.LowerLimitToDetect.HasValue ? series.LowerLimitToDetect.ToString() : "-")}",
+                                                $"Upper limit: {(series.UpperLimitToDetect.HasValue ? series.UpperLimitToDetect.ToString() : "-")}",
+                                                $"No alert for: {(series.DoNotAlertAgainWithinMinutes.HasValue ? series.DoNotAlertAgainWithinMinutes + " minutes" : "-")}",
+                                            });
+
+                                            <tr>
+                                                <td style="width:1%;">
+                                                    <a href="@graylogUrl" style="text-decoration: none;" target="_blank" data-bs-toggle="popover" data-bs-html="true" title="Query: @series.Query" data-bs-trigger="hover" data-bs-placement="top" data-bs-content="@description">@series.Name</a>
+                                                </td>
+                                                <td style="width:1%;">@(series.Aggregation + (string.IsNullOrWhiteSpace(series.Field) ? "" : $"({series.Field})"))</td>
+                                                <td>@series.GroupBy</td>
+                                                <td style="width:1%;">
+                                                    @if (!hasGrouping)
+                                                    {
+                                                        <a type="button" title="Preview" class="btn btn-secondary btn-sm" href="@Url.Action("Preview", "MonitorSeries", new { id = series.ID })"><i class="bi bi-search"></i></a>
+                                                    }
+                                                </td>
+                                                <td style="width:1%;">
+                                                    <a type="button" title="Edit" class="btn btn-primary btn-sm" href="@Url.Action("Edit", "MonitorSeries", new { id = series.ID })"><i class="bi bi-pencil-square"></i></a>
+                                                </td>
+                                                <td style="width:1%;">
+                                                    @if (!hasGrouping)
+                                                    {
+                                                        <a type="button" title="Clear data" class="btn btn-danger btn-sm" href="javascript:deleteSeriesData(@series.ID, '')"><i class="bi bi-x-circle"></i></a>
+                                                    }
+                                                </td>
+                                                <td style="width:1%;">
+                                                    <a type="button" title="Delete" class="btn btn-danger btn-sm" href="@Url.Action("Delete", "MonitorSeries", new { id = series.ID })"><i class="bi bi-trash"></i></a>
+                                                </td>
+                                            </tr>
+
+                                            if (hasGrouping)
+                                            {
+                                                <tr>
+                                                    <td colspan="100">
+                                                        <table class="table table-borderless">
+                                                            <tbody>
+                                                                @foreach (var seriesGrouping in series.AllWithGrouping())
+                                                                {
+                                                                    var graylogUrlForGroupValue = $"{seriesGrouping.MonitorSource.Source.Trim('/')}/search?q={HttpUtility.UrlEncode(seriesGrouping.Query)}";
+
+                                                                    <tr>
+                                                                        <td scope="row">
+                                                                            <a href="@graylogUrlForGroupValue" style="text-decoration: none; margin-left: 36px;" target="_blank" data-bs-toggle="popover" data-bs-html="true" title="Query: @seriesGrouping.Query" data-bs-trigger="hover" data-bs-placement="top" data-bs-content="@description">@seriesGrouping.Name</a>
+                                                                        </td>
+                                                                        <td style="width:1%;">
+                                                                            <a type="button" title="Preview" class="btn btn-secondary btn-sm" href="@Url.Action("Preview", "MonitorSeries", new { id = seriesGrouping.ID, groupValue = seriesGrouping.GroupValue })"><i class="bi bi-search"></i></a>
+                                                                        </td>
+                                                                        <td style="width:1%;">
+                                                                            <a type="button" title="Clear data" class="btn btn-danger btn-sm" href="javascript:deleteSeriesData(@seriesGrouping.ID, '@(seriesGrouping.GroupValue ?? "")')"><i class="bi bi-x-circle"></i></a>
+                                                                        </td>
+                                                                    </tr>
+                                                                }
+                                                            </tbody>
+                                                        </table>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        }
+                                    </tbody>
+                                </table>
+                            }
+                        }
                     }
-                </tbody>
-            </table>
-        }
-    }
-}
-else
-{
-    <div class="text-muted">No series found</div>
-}
+                    else
+                    {
+                        <div class="text-muted">No series found</div>
+                    }
+                </div>
+            </div>
+        </div>
+    }  
+
+</div>
 
 
 <div class="modal fade" id="modal_upload_definitions" tabindex="-1" aria-labelledby="modal_upload_definitions_label" aria-hidden="true">

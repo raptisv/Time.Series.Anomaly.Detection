@@ -18,9 +18,9 @@ namespace Time.Series.Anomaly.Detection.Data.Services
             _scopeFactory = scopeFactory;
         }
 
-        public async Task CreateOrUpdateByTimestampAsync(long monitorSeriesId, DateTime timeStamp, decimal value)
+        public async Task CreateOrUpdateByTimestampAsync(long monitorSeriesId, string groupValue, DateTime timeStamp, decimal value)
         {
-            var monitorPerMinuteDataResult = (await GetLatestAsync(1, monitorSeriesId, timeStamp)).SingleOrDefault();
+            var monitorPerMinuteDataResult = (await GetLatestAsync(1, monitorSeriesId, groupValue, timeStamp)).SingleOrDefault();
 
             if (monitorPerMinuteDataResult != null)
             {
@@ -28,16 +28,16 @@ namespace Time.Series.Anomaly.Detection.Data.Services
             }
             else
             {
-                await PostCountAsync(monitorSeriesId, timeStamp, value);
+                await PostCountAsync(monitorSeriesId, groupValue, timeStamp, value);
             }
         }
 
-        public Task<List<MonitorSeriesData>> GetLatestAsync(int pageSize, long monitorSeriesId, DateTime? timeStamp = null)
+        public Task<List<MonitorSeriesData>> GetLatestAsync(int pageSize, long monitorSeriesId, string groupValue, DateTime? timeStamp = null)
         {
-            return GetLatestAsync(pageSize, new List<long>() { monitorSeriesId }, timeStamp);
+            return GetLatestAsync(pageSize, new List<long>() { monitorSeriesId }, groupValue, timeStamp);
         }
 
-        public async Task<List<MonitorSeriesData>> GetLatestAsync(int pageSize, List<long> monitorSeriesIDs, DateTime? timeStamp = null)
+        public async Task<List<MonitorSeriesData>> GetLatestAsync(int pageSize, List<long> monitorSeriesIDs, string groupValue, DateTime? timeStamp = null)
         {
             using var scope = _scopeFactory.CreateScope();
             using var _dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -47,7 +47,7 @@ namespace Time.Series.Anomaly.Detection.Data.Services
             if (timeStamp.HasValue)
             {
                 result = await _dbContext.MonitorSeriesData
-                    .Where(x => monitorSeriesIDs.Contains(x.MonitorSeriesID) && x.Timestamp == timeStamp.Value)
+                    .Where(x => monitorSeriesIDs.Contains(x.MonitorSeriesID) && x.MonitorSeriesGroupValue == groupValue && x.Timestamp == timeStamp.Value)
                     .OrderByDescending(x => x.Timestamp)
                     .Take(pageSize)
                     .ToListAsync();
@@ -55,7 +55,7 @@ namespace Time.Series.Anomaly.Detection.Data.Services
             else
             {
                 result = await _dbContext.MonitorSeriesData
-                    .Where(x => monitorSeriesIDs.Contains(x.MonitorSeriesID))
+                    .Where(x => monitorSeriesIDs.Contains(x.MonitorSeriesID) && x.MonitorSeriesGroupValue == groupValue)
                     .OrderByDescending(x => x.Timestamp)
                     .Take(pageSize)
                     .ToListAsync();
@@ -64,24 +64,24 @@ namespace Time.Series.Anomaly.Detection.Data.Services
             return result;
         }
 
-        public Task<List<MonitorSeriesData>> GetInRangeAsync(long monitorSeriesID, DateTime timeStampFrom, DateTime timestampTo)
+        public Task<List<MonitorSeriesData>> GetInRangeAsync(long monitorSeriesID, string groupValue, DateTime timeStampFrom, DateTime timestampTo)
         {
-            return GetInRangeAsync(new List<long>() { monitorSeriesID }, timeStampFrom, timestampTo);
+            return GetInRangeAsync(new List<long>() { monitorSeriesID }, groupValue, timeStampFrom, timestampTo);
         }
 
-        public async Task<List<MonitorSeriesData>> GetInRangeAsync(List<long> monitorSeriesIDs, DateTime timeStampFrom, DateTime timestampTo)
+        public async Task<List<MonitorSeriesData>> GetInRangeAsync(List<long> monitorSeriesIDs, string groupValue, DateTime timeStampFrom, DateTime timestampTo)
         {
             using var scope = _scopeFactory.CreateScope();
             using var _dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
             return await _dbContext.MonitorSeriesData
-                            .Where(x => monitorSeriesIDs.Contains(x.MonitorSeriesID) && x.Timestamp >= timeStampFrom && x.Timestamp <= timestampTo)
+                            .Where(x => monitorSeriesIDs.Contains(x.MonitorSeriesID) && x.MonitorSeriesGroupValue == groupValue && x.Timestamp >= timeStampFrom && x.Timestamp <= timestampTo)
                             .OrderByDescending(x => x.Timestamp)
                             .Take(1000)
                             .ToListAsync();
         }
 
-        public async Task PostCountAsync(long monitorSeriesID, DateTime timestamp, decimal value)
+        public async Task PostCountAsync(long monitorSeriesID, string groupValue, DateTime timestamp, decimal value)
         {
             using var scope = _scopeFactory.CreateScope();
             using var _dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -91,6 +91,7 @@ namespace Time.Series.Anomaly.Detection.Data.Services
                 ID = 0,
                 Timestamp = timestamp,
                 MonitorSeriesID = monitorSeriesID,
+                MonitorSeriesGroupValue = groupValue,
                 Value = value
             });
 

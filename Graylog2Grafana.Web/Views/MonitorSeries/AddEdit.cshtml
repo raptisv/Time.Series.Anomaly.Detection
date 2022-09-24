@@ -3,6 +3,7 @@
 @using Time.Series.Anomaly.Detection.Data.Models;
 @using Time.Series.Anomaly.Detection.Data.Abstractions;
 @inject IMonitorSourcesService _monitorSourcesService;
+@inject IMonitorGroupsService _monitorGroupsService;
 @model MonitorSeries
 
 @{
@@ -10,6 +11,9 @@
     ViewData["Title"] = isEdit ? "Edit" : "Create";
 
     List<SelectListItem> annotationTypes = EnumProvider<MonitorType>.GetValues(MonitorType.Downwards).Select(x => new SelectListItem { Text = x.Value, Value = x.Key.ToString() }).ToList();
+
+    var groups = await _monitorGroupsService.GetAllAsync();
+    List<SelectListItem> availableGroups = groups.Select(x => new SelectListItem { Text = x.Name, Value = x.ID.ToString() }).ToList();
 
     var sources = await _monitorSourcesService.GetAllAsync();
     List<SelectListItem> availableSources = sources.Select(x => new SelectListItem { Text = x.Name, Value = x.ID.ToString() }).ToList();
@@ -32,6 +36,12 @@
                     <div class="row">
                         <div class="col-12 col-md-6 col-lg-6">
                             <div class="form-group">
+                                <label for="Group" class="form-label mt-4">Group</label>
+                                @Html.DropDownListFor(m => m.MonitorGroupID, availableGroups, null, new { @class = "form-control" })
+                                <div><small class="form-text text-muted">The series group</small></div>
+                                @Html.ValidationMessageFor(m => m.MonitorGroupID, "", new { @class = "text-danger" })
+                            </div>
+                            <div class="form-group">
                                 <label for="Name" class="form-label mt-4">Source</label>
                                 @Html.DropDownListFor(m => m.MonitorSourceID, availableSources, null, new { @class = "form-control" })
                                 <div><small class="form-text text-muted">The series source</small></div>
@@ -50,60 +60,91 @@
                                 @Html.ValidationMessageFor(m => m.Query, "", new { @class = "text-danger" })
                             </div>
                             <div class="form-group">
-                                <label for="MonitorAnomalyType" class="form-label mt-4">Annotation type</label>
-                                @Html.DropDownListFor(m => m.MonitorType, annotationTypes, null, new { @class = "form-control" })
-                                <div><small class="form-text text-muted">Select which type of anomaly detection you wish to monitor.</small></div>
-                                @Html.ValidationMessageFor(m => m.MonitorType, "", new { @class = "text-danger" })
-                            </div>
-                            <div class="form-group">
                                 <label for="Description" class="form-label mt-4">Description (optional)</label>
                                 @Html.TextBoxFor(m => m.Description, new { @class = "form-control" })
                                 @Html.ValidationMessageFor(m => m.Description, "", new { @class = "text-danger" })
                             </div>
                         </div>
                         <div class="col-12 col-md-6 col-lg-6">
-                            <div class="form-group">
-                                <label for="Sensitivity" class="form-label mt-4">Sensitivity</label>
-                                @Html.TextBoxFor(m => m.Sensitivity, new { @class = "form-control", type = "number", min = "1", max = "100" })
-                                <div><small class="form-text text-muted">From 1 to 100, select the sensitivity. The more, the easier to get alerted.</small></div>
-                                @Html.ValidationMessageFor(m => m.Sensitivity, "", new { @class = "text-danger" })
-                            </div>
-                            <div class="form-group">
-                                <label for="MinuteDurationForAnomalyDetection" class="form-label mt-4">Minute duration for anomaly detection</label>
-                                @Html.TextBoxFor(m => m.MinuteDurationForAnomalyDetection, new { @class = "form-control", type = "number", min = "20", max = "1000" })
-                                <div><small class="form-text text-muted">From 20 to 1000, how many of the latest minute metrics should be included in anomaly detection process.</small></div>
-                                @Html.ValidationMessageFor(m => m.MinuteDurationForAnomalyDetection, "", new { @class = "text-danger" })
-                            </div>
-                            <div class="form-group">
-                                <label for="LowerLimitToDetect" class="form-label mt-4">Lower limit (optional)</label>
-                                @Html.TextBoxFor(m => m.LowerLimitToDetect, new { @class = "form-control", type = "number" })
-                                <div><small class="form-text text-muted">Below that value, you will not be alerted.</small></div>
-                                @Html.ValidationMessageFor(m => m.LowerLimitToDetect, "", new { @class = "text-danger" })
-                            </div>
-                            <div class="form-group">
-                                <label for="UpperLimitToDetect" class="form-label mt-4">Upper limit (optional)</label>
-                                @Html.TextBoxFor(m => m.UpperLimitToDetect, new { @class = "form-control", type = "number" })
-                                <div><small class="form-text text-muted">Above that value, you will not be alerted.</small></div>
-                                @Html.ValidationMessageFor(m => m.UpperLimitToDetect, "", new { @class = "text-danger" })
-                            </div>
-                            <div class="form-group">
-                                <label for="DoNotAlertAgainWithinMinutes" class="form-label mt-4">Do not alert within minutes (optional)</label>
-                                @Html.TextBoxFor(m => m.DoNotAlertAgainWithinMinutes, new { @class = "form-control", type = "number" })
-                                <div><small class="form-text text-muted">Do not produce alert within the above minutes from the last alert in this series.</small></div>
-                                @Html.ValidationMessageFor(m => m.DoNotAlertAgainWithinMinutes, "", new { @class = "text-danger" })
-                            </div>
-                            <hr/>
-                            <div class="form-group">
-                                <label for="Aggregation" class="form-label mt-4">Aggregation</label>
-                                @Html.DropDownListFor(m => m.Aggregation, availableAggregations, null, new { @class = "form-control" })
-                                <div><small class="form-text text-muted">The aggregation type</small></div>
-                                @Html.ValidationMessageFor(m => m.Aggregation, "", new { @class = "text-danger" })
-                            </div>
-                            <div class="form-group">
-                                <label for="Field" class="form-label mt-4">Field (optional)</label>
-                                @Html.TextBoxFor(m => m.Field, new { @class = "form-control" })
-                                <div><small class="form-text text-muted">The field to aggregate.</small></div>
-                                @Html.ValidationMessageFor(m => m.Field, "", new { @class = "text-danger" })
+
+                            <ul class="nav nav-pills" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <a class="nav-link active" data-bs-toggle="tab" href="#detection" aria-selected="true" role="tab">Anomaly detection</a>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <a class="nav-link" data-bs-toggle="tab" href="#aggregation" aria-selected="false" tabindex="-1" role="tab">Aggregation</a>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <a class="nav-link" data-bs-toggle="tab" href="#grouping" aria-selected="false" tabindex="-1" role="tab">Grouping</a>
+                                </li>
+                            </ul>
+                            <div id="myTabContent" class="tab-content">
+                                <div class="tab-pane fade show active" id="detection" role="tabpanel">
+                                    <div class="form-group">
+                                        <label for="MonitorAnomalyType" class="form-label mt-4">Annotation type</label>
+                                        @Html.DropDownListFor(m => m.MonitorType, annotationTypes, null, new { @class = "form-control" })
+                                        <div><small class="form-text text-muted">Select which type of anomaly detection you wish to monitor.</small></div>
+                                        @Html.ValidationMessageFor(m => m.MonitorType, "", new { @class = "text-danger" })
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="Sensitivity" class="form-label mt-4">Sensitivity</label>
+                                        @Html.TextBoxFor(m => m.Sensitivity, new { @class = "form-control", type = "number", min = "1", max = "100" })
+                                        <div><small class="form-text text-muted">From 1 to 100, select the sensitivity. The more, the easier to get alerted.</small></div>
+                                        @Html.ValidationMessageFor(m => m.Sensitivity, "", new { @class = "text-danger" })
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="MinuteDurationForAnomalyDetection" class="form-label mt-4">Minute duration for anomaly detection</label>
+                                        @Html.TextBoxFor(m => m.MinuteDurationForAnomalyDetection, new { @class = "form-control", type = "number", min = "20", max = "1000" })
+                                        <div><small class="form-text text-muted">From 20 to 1000, how many of the latest minute metrics should be included in anomaly detection process.</small></div>
+                                        @Html.ValidationMessageFor(m => m.MinuteDurationForAnomalyDetection, "", new { @class = "text-danger" })
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="LowerLimitToDetect" class="form-label mt-4">Lower limit (optional)</label>
+                                        @Html.TextBoxFor(m => m.LowerLimitToDetect, new { @class = "form-control", type = "number" })
+                                        <div><small class="form-text text-muted">Below that value, you will not be alerted.</small></div>
+                                        @Html.ValidationMessageFor(m => m.LowerLimitToDetect, "", new { @class = "text-danger" })
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="UpperLimitToDetect" class="form-label mt-4">Upper limit (optional)</label>
+                                        @Html.TextBoxFor(m => m.UpperLimitToDetect, new { @class = "form-control", type = "number" })
+                                        <div><small class="form-text text-muted">Above that value, you will not be alerted.</small></div>
+                                        @Html.ValidationMessageFor(m => m.UpperLimitToDetect, "", new { @class = "text-danger" })
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="DoNotAlertAgainWithinMinutes" class="form-label mt-4">Do not alert within minutes (optional)</label>
+                                        @Html.TextBoxFor(m => m.DoNotAlertAgainWithinMinutes, new { @class = "form-control", type = "number" })
+                                        <div><small class="form-text text-muted">Do not produce alert within the above minutes from the last alert in this series.</small></div>
+                                        @Html.ValidationMessageFor(m => m.DoNotAlertAgainWithinMinutes, "", new { @class = "text-danger" })
+                                    </div>
+                                </div>
+                                <div class="tab-pane fade" id="aggregation" role="tabpanel">
+                                    <div class="form-group">
+                                        <label for="Aggregation" class="form-label mt-4">Aggregation</label>
+                                        @Html.DropDownListFor(m => m.Aggregation, availableAggregations, null, new { @class = "form-control" })
+                                        <div><small class="form-text text-muted">The aggregation type</small></div>
+                                        @Html.ValidationMessageFor(m => m.Aggregation, "", new { @class = "text-danger" })
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="Field" class="form-label mt-4">Field (optional)</label>
+                                        @Html.TextBoxFor(m => m.Field, new { @class = "form-control" })
+                                        <div><small class="form-text text-muted">The field to aggregate.</small></div>
+                                        @Html.ValidationMessageFor(m => m.Field, "", new { @class = "text-danger" })
+                                    </div>
+                                </div>
+                                <div class="tab-pane fade" id="grouping">
+                                     <div class="form-group">
+                                        <label for="GroupBy" class="form-label mt-4">Group by (optional)</label>
+                                        @Html.TextBoxFor(m => m.GroupBy, new { @class = "form-control" })
+                                        <div><small class="form-text text-muted">The field to group by.</small></div>
+                                        @Html.ValidationMessageFor(m => m.GroupBy, "", new { @class = "text-danger" })
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="GroupByValues" class="form-label mt-4">Group by values (optional)</label>
+                                        @Html.TextBoxFor(m => m.GroupByValues, new { @class = "form-control" })
+                                        <div><small class="form-text text-muted">The values to group by comma separated.</small></div>
+                                        @Html.ValidationMessageFor(m => m.GroupByValues, "", new { @class = "text-danger" })
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

@@ -44,16 +44,16 @@ $(document).ready(function () {
 
     Chart.plugins.register(verticalLinePlugin);
 
-    reloadSingle(monitorSeriesId);
+    reloadSingle(monitorSeriesId, monitorSeriesGroupValue);
     setInterval(function () {
-        reloadSingle(monitorSeriesId);
+        reloadSingle(monitorSeriesId, monitorSeriesGroupValue);
     }, 10000);
 
     $('#sensitivity-range').change(function () {
         var sensitivity = $(this).val();
         $('#lbl-sensitivity').text(sensitivity);
         updateSensitivity(monitorSeriesId, sensitivity, function () {
-            reloadSingle(monitorSeriesId);
+            reloadSingle(monitorSeriesId, monitorSeriesGroupValue);
         });
     });
 });
@@ -68,8 +68,8 @@ function updateSensitivity(itemId, sensitivity, callback) {
     .then(data => callback(data));
 }
 
-function fetchMonitorDetectData(itemId, callback) {
-    fetch(`/MonitorSeries/DetectionResult?id=${itemId}`, {
+function fetchMonitorDetectData(itemId, itemGroupValue, callback) {
+    fetch(`/MonitorSeries/DetectionResult?id=${itemId}&groupValue=${itemGroupValue}`, {
         method: 'get',
         headers: {
             'Content-Type': 'application/json'
@@ -79,8 +79,8 @@ function fetchMonitorDetectData(itemId, callback) {
     .then(data => callback(data));
 }
 
-function reloadSingle(itemId) {
-    fetchMonitorDetectData(itemId, function (data) {
+function reloadSingle(itemId, itemGroupValue) {
+    fetchMonitorDetectData(itemId, itemGroupValue, function (data) {
         var customOptions = {
             Height: 500,
             scales: {

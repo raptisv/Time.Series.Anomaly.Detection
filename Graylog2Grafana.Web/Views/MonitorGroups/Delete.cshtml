@@ -1,0 +1,34 @@
+﻿@using Time.Series.Anomaly.Detection.Data.Models;
+@model MonitorGroups
+@{
+    ViewData["Title"] = "Delete";
+}
+
+<div class="row clearfix">
+    <div class="col-12">
+        <div class="card bg-dark">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    Delete group
+                </h5>
+            </div>
+            <div class="card-body">
+                @using (Html.BeginForm(("Delete", "MonitorGroups", new { id = Model.ID }, FormMethod.Post, true, new { role = "form" })))
+                {
+                    @Html.HiddenFor(m => m.ID)
+                    <div>
+                        Delete @Model.Name ?
+                        <br>
+                        <div class="alert alert-danger">CAUTION: All series in the group will be deleted!</div>
+                    </div>
+                    <div class="form-group">
+                        @Html.ValidationMessage("CustomError", new { @class = "text-danger" })
+                    </div>
+                    <button type="submit" class="btn btn-danger mt-3" title="Delete">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+</div>

@@ -8,9 +8,9 @@ function downloadFile(uri, fileName) {
     link.remove();
 }
 
-function deleteSeriesData(itemId) {
+function deleteSeriesData(itemId, groupValue) {
     if (confirm('Clear series data?')) {
-        fetch(`/MonitorSeries/DeleteData?id=${itemId}`, {
+        fetch(`/MonitorSeries/DeleteData?id=${itemId}&groupValue=${groupValue}`, {
             method: 'delete',
             headers: {
                 'Content-Type': 'application/json'
@@ -20,6 +20,11 @@ function deleteSeriesData(itemId) {
 }
 
 $(document).ready(function () {
+
+    var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
+    var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+      return new bootstrap.Popover(popoverTriggerEl)
+    });
 
     $(".checkbox.readonly").click(function () { return false; });
 

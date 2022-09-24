@@ -7,7 +7,8 @@ namespace Time.Series.Anomaly.Detection.Data.Models
 {
     public class ApplicationDbContext : IdentityDbContext<IdentityUser>
     {
-        public DbSet<NotificationSlack> SlackNotification { get; set; }
+        public DbSet<NotificationSlack> SlackNotification { get; set; }        
+        public DbSet<MonitorGroups> MonitorGroups { get; set; }
         public DbSet<MonitorSources> MonitorSources { get; set; }
         public DbSet<MonitorSeries> MonitorSeries { get; set; }
         public DbSet<MonitorSeriesData> MonitorSeriesData { get; set; }
@@ -26,6 +27,9 @@ namespace Time.Series.Anomaly.Detection.Data.Models
             // For example, you can rename the ASP.NET Core Identity table names and more.
             // Add your customizations after calling base.OnModelCreating(builder);
 
+            builder.Entity<MonitorGroups>().ToTable("MonitorGroups").HasKey(p => p.ID);
+            builder.Entity<MonitorGroups>().HasIndex(p => p.Name).IsUnique();
+
             builder.Entity<MonitorSources>().ToTable("MonitorSources").HasKey(p => p.ID);
             builder.Entity<MonitorSources>().HasIndex(p => p.Name).IsUnique();
 
@@ -37,11 +41,11 @@ namespace Time.Series.Anomaly.Detection.Data.Models
 
             builder.Entity<MonitorSeriesData>().ToTable("MonitorSeriesData").HasKey(p => p.ID);
             builder.Entity<MonitorSeriesData>().HasOne(p => p.MonitorSeries).WithMany(b => b.MonitorSeriesData).HasForeignKey(p => p.MonitorSeriesID).IsRequired();
-            builder.Entity<MonitorSeriesData>().HasIndex(p => new { p.MonitorSeriesID, p.Timestamp }).IsUnique();
+            builder.Entity<MonitorSeriesData>().HasIndex(p => new { p.MonitorSeriesID, p.MonitorSeriesGroupValue, p.Timestamp }).IsUnique();
 
             builder.Entity<AnomalyDetectionData>().ToTable("AnomalyDetectionData").HasKey(p => p.ID);
             builder.Entity<AnomalyDetectionData>().HasOne(p => p.MonitorSeries).WithMany(b => b.AnomalyDetectionData).HasForeignKey(p => p.MonitorSeriesID).IsRequired();
-            builder.Entity<AnomalyDetectionData>().HasIndex(p => new { p.MonitorSeriesID, p.Timestamp }).IsUnique();
+            builder.Entity<AnomalyDetectionData>().HasIndex(p => new { p.MonitorSeriesID, p.MonitorSeriesGroupValue, p.Timestamp }).IsUnique();
 
             // Seed 
             var slackNotification = new NotificationSlack()
@@ -53,6 +57,14 @@ namespace Time.Series.Anomaly.Detection.Data.Models
             };
 
             builder.Entity<NotificationSlack>().HasData(slackNotification);
+
+            var firstMonitorGroup = new MonitorGroups()
+            {
+                ID = 1,
+                Name = "Group 1"
+            };
+
+            builder.Entity<MonitorGroups>().HasData(firstMonitorGroup);
 
             var firstMonitorSource = new MonitorSources()
             {
@@ -84,7 +96,11 @@ namespace Time.Series.Anomaly.Detection.Data.Models
                     MinuteDurationForAnomalyDetection = 60,
                     DoNotAlertAgainWithinMinutes = null,
                     MonitorSourceID = firstMonitorSource.ID,
-                    Aggregation = "count"
+                    MonitorGroupID = firstMonitorGroup.ID,
+                    Aggregation = "count",
+                    Field = null,
+                    GroupBy = null,
+                    GroupByValues = null
                 });
 
             // Seed Admin role

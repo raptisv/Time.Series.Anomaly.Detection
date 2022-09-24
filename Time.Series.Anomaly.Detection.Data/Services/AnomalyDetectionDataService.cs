@@ -19,12 +19,12 @@ namespace Time.Series.Anomaly.Detection.Data.Services
             _scopeFactory = scopeFactory;
         }
 
-        public async Task<bool> CreateIfNotAlreadyExistsAsync(long monitorSeriesID, DateTime timeStamp, MonitorType type, string comments)
+        public async Task<bool> CreateIfNotAlreadyExistsAsync(long monitorSeriesID, string groupValue, DateTime timeStamp, MonitorType type, string comments)
         {
             using var scope = _scopeFactory.CreateScope();
             using var _dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-            var sameAlertExists = await ExistsByMonitorSeriesAndTimestampAsync(monitorSeriesID, timeStamp);
+            var sameAlertExists = await ExistsByMonitorSeriesAndTimestampAsync(monitorSeriesID, groupValue, timeStamp);
 
             if (!sameAlertExists)
             {
@@ -33,6 +33,7 @@ namespace Time.Series.Anomaly.Detection.Data.Services
                     ID = 0,
                     Timestamp = timeStamp,
                     MonitorSeriesID = monitorSeriesID,
+                    MonitorSeriesGroupValue = groupValue,
                     Comments = comments,
                     MonitorType = type
                 });
@@ -45,13 +46,13 @@ namespace Time.Series.Anomaly.Detection.Data.Services
             return false;
         }
 
-        public async Task<bool> ExistsByMonitorSeriesAndTimestampAsync(long monitorSeriesID, DateTime timestamp)
+        private async Task<bool> ExistsByMonitorSeriesAndTimestampAsync(long monitorSeriesID, string groupValue, DateTime timestamp)
         {
             using var scope = _scopeFactory.CreateScope();
             using var _dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
             return (await _dbContext.AnomalyDetectionData
-                            .Where(x => x.MonitorSeriesID == monitorSeriesID && x.Timestamp == timestamp)
+                            .Where(x => x.MonitorSeriesID == monitorSeriesID && x.MonitorSeriesGroupValue == groupValue && x.Timestamp == timestamp)
                             .ToListAsync())
                             .Any();
         }
@@ -78,13 +79,13 @@ namespace Time.Series.Anomaly.Detection.Data.Services
                             .ToListAsync();
         }
 
-        public async Task<AnomalyDetectionData> GetLatestForSeriesAsync(long monitorSeriesId)
+        public async Task<AnomalyDetectionData> GetLatestForSeriesAsync(long monitorSeriesId, string groupValue)
         {
             using var scope = _scopeFactory.CreateScope();
             using var _dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
             return await _dbContext.AnomalyDetectionData
-                            .Where(x => x.MonitorSeriesID == monitorSeriesId)
+                            .Where(x => x.MonitorSeriesID == monitorSeriesId && x.MonitorSeriesGroupValue == groupValue)
                             .OrderByDescending(x => x.Timestamp)
                             .FirstOrDefaultAsync();
         }

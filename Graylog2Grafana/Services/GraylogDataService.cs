@@ -15,6 +15,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 using Time.Series.Anomaly.Detection.Data.Abstractions;
+using Time.Series.Anomaly.Detection.Data.Extensions;
 using Time.Series.Anomaly.Detection.Data.Models;
 using Time.Series.Anomaly.Detection.Data.Models.Enums;
 using Time.Series.Anomaly.Detection.Models;
@@ -35,11 +36,6 @@ namespace Graylog2Grafana.Services
             Formatting = Formatting.None
         };
 
-        /// <summary>
-        /// Helper property to check once, if the current graylog source supports View Search Endpoint or not.
-        /// </summary>
-        private ConcurrentDictionary<int, bool> _graylogVersionSupportsViewSearchEndpoint;
-
         public GraylogDataService(
             ILogger logger,
             IServiceProvider serviceProvider,
@@ -50,8 +46,6 @@ namespace Graylog2Grafana.Services
             _clientFactory = clientFactory;
             _serviceProvider = serviceProvider;
             _dataAnomalyDetectionService = dataAnomalyDetectionService;
-
-            _graylogVersionSupportsViewSearchEndpoint = new ConcurrentDictionary<int, bool>();
         }
 
         public async Task LoadDataAsync()
@@ -115,33 +109,28 @@ namespace Graylog2Grafana.Services
 
         private async Task LoadDataAsync(IServiceScope scope, MonitorSources graylogSource)
         {
-            // At first (and only once) define the source api (if it supports View Search Endpoint)
-            var isSourceDefined = _graylogVersionSupportsViewSearchEndpoint.ContainsKey(graylogSource.ID);
-            if (!isSourceDefined)
-            {
-                var graylogVersionSupportsViewSearchEndpoint = await GraylogSupportsViewSearchEndpointAsync(graylogSource);
-                _graylogVersionSupportsViewSearchEndpoint[graylogSource.ID] = graylogVersionSupportsViewSearchEndpoint;
-            }
-
             IMonitorSeriesService monitorSeriesService = scope.ServiceProvider.GetRequiredService<IMonitorSeriesService>();
             IMonitorSeriesDataService monitorSeriesDataService = scope.ServiceProvider.GetRequiredService<IMonitorSeriesDataService>();
 
             var monitorSeriesItems = await monitorSeriesService.GetAllAsync();
 
             // 1. Gather queries to be executed
-            List<(long MonitorSeriesId, string Query, DateTime DateFrom, DateTime DateTo, string Aggregation, string Property)> queries =
-                new List<(long MonitorSeriesId, string Query, DateTime DateFrom, DateTime DateTo, string Aggregation, string Property)>();
+            List<(string QueryId, string Query, DateTime DateFrom, DateTime DateTo, string Aggregation, string Property)> queries =
+                new List<(string QueryId, string Query, DateTime DateFrom, DateTime DateTo, string Aggregation, string Property)>();
 
-            foreach (var monitorSeries in monitorSeriesItems)
+            foreach (var monitorSeries in monitorSeriesItems.SelectMany(x => x.AllWithGrouping()))
             {
-                var monitorSeriesLatestRecord = (await monitorSeriesDataService.GetLatestAsync(1, monitorSeries.ID)).SingleOrDefault();
+                var monitorSeriesLatestRecord = (await monitorSeriesDataService.GetLatestAsync(1, monitorSeries.ID, monitorSeries.GroupValue)).SingleOrDefault();
 
                 var minutesBack = GetMinutesToLookBack(monitorSeriesLatestRecord?.Timestamp, monitorSeries.MinuteDurationForAnomalyDetection);
 
                 DateTime dtFrom = Utils.TruncateToMinute(DateTime.UtcNow.AddMinutes(-minutesBack));
                 DateTime dtTo = Utils.TruncateToMinute(DateTime.UtcNow.AddMinutes(1));
 
-                queries.Add((monitorSeries.ID, monitorSeries.Query, dtFrom, dtTo, monitorSeries.Aggregation, monitorSeries.Field));
+                // IMPORTANT! Do not change this. It will be used to identify the response values later.
+                var queryID = monitorSeries.ID + "_" + monitorSeries.GroupValue;
+
+                queries.Add((queryID, monitorSeries.Query, dtFrom, dtTo, monitorSeries.Aggregation, monitorSeries.Field));
             }
 
             if (!queries.Any())
@@ -151,14 +140,12 @@ namespace Graylog2Grafana.Services
             }
 
             // 2. Execute
-            var seriesResult = _graylogVersionSupportsViewSearchEndpoint[graylogSource.ID]
-                ? await GraylogQueryViewExecuteAsync(graylogSource, KnownIntervals.minute, queries)
-                : await GraylogQueryHistogramAsync(graylogSource, queries);
+            var seriesResult = await GraylogQueryViewExecuteAsync(graylogSource, KnownIntervals.minute, queries);
 
             // 3. Persist
-            foreach (var query in queries.Where(q => seriesResult.Data.ContainsKey(q.MonitorSeriesId.ToString())))
+            foreach (var query in queries.Where(q => seriesResult.Data.ContainsKey(q.QueryId)))
             {
-                var data = seriesResult.Data[query.MonitorSeriesId.ToString()];
+                var data = seriesResult.Data[query.QueryId];
 
                 // Fill empty timeslots in range
                 for (var timestamp = query.DateFrom; timestamp < query.DateTo; timestamp = timestamp.AddMinutes(1))
@@ -173,8 +160,12 @@ namespace Graylog2Grafana.Services
 
                 foreach (var d in data)
                 {
+                    var queryIdParts = query.QueryId.Split('_');
+                    var monitorSeriesId = long.Parse(queryIdParts[0]);
+                    var monitorSeriesGroupValue = queryIdParts.Length > 1 && !string.IsNullOrWhiteSpace(queryIdParts[1]) ? queryIdParts[1].Trim() : null;
+
                     var date = Utils.GetDateFromUnixTimestamp(d.Key.ToString()).Value;
-                    await monitorSeriesDataService.CreateOrUpdateByTimestampAsync(query.MonitorSeriesId, date, d.Value);
+                    await monitorSeriesDataService.CreateOrUpdateByTimestampAsync(monitorSeriesId, monitorSeriesGroupValue, date, d.Value);
                 }
             }
 
@@ -194,12 +185,12 @@ namespace Graylog2Grafana.Services
 
             var allMonitors = await monitorSeriesService.GetAllAsync();
 
-            foreach (var monitorSeries in allMonitors)
+            foreach (var monitorSeries in allMonitors.SelectMany(x => x.AllWithGrouping()))
             {
                 // Check if another alert for series is very close
                 if (monitorSeries.DoNotAlertAgainWithinMinutes.HasValue)
                 {
-                    var latestDetectionForSeries = await anomalyDetectionRecordService.GetLatestForSeriesAsync(monitorSeries.ID);
+                    var latestDetectionForSeries = await anomalyDetectionRecordService.GetLatestForSeriesAsync(monitorSeries.ID, monitorSeries.GroupValue);
                     if (latestDetectionForSeries != null &&
                         (DateTime.UtcNow - latestDetectionForSeries.Timestamp).TotalMinutes < Math.Abs(monitorSeries.DoNotAlertAgainWithinMinutes.Value))
                     {
@@ -209,7 +200,7 @@ namespace Graylog2Grafana.Services
 
                 var stepsBack = monitorSeries.MinuteDurationForAnomalyDetection + Math.Abs(graylogSource.DetectionDelayInMinutes);
 
-                var monitorSeriesData = (await monitorSeriesDataService.GetLatestAsync(stepsBack, monitorSeries.ID))
+                var monitorSeriesData = (await monitorSeriesDataService.GetLatestAsync(stepsBack, monitorSeries.ID, monitorSeries.GroupValue))
                     .OrderBy(x => x.Timestamp)
                     .ToList();
 
@@ -225,6 +216,7 @@ namespace Graylog2Grafana.Services
 
                     var alertCreated = await anomalyDetectionRecordService.CreateIfNotAlreadyExistsAsync(
                         monitorSeries.ID,
+                        monitorSeries.GroupValue,
                         anomalyDetected.TimestampDetected,
                         anomalyDetected.MonitorType,
                         comment);
@@ -272,8 +264,8 @@ namespace Graylog2Grafana.Services
 
         private async Task<bool> GraylogSupportsViewSearchEndpointAsync(MonitorSources graylogSource)
         {
-            List<(long MonitorSeriesId, string Query, DateTime DateFrom, DateTime DateTo, string Aggregation, string Property)> dummyQueries =
-                       new List<(long MonitorSeriesId, string Query, DateTime DateFrom, DateTime DateTo, string Aggregation, string Property)>();
+            List<(string QueryId, string Query, DateTime DateFrom, DateTime DateTo, string Aggregation, string Property)> dummyQueries =
+                       new List<(string QueryId, string Query, DateTime DateFrom, DateTime DateTo, string Aggregation, string Property)>();
 
             // If that request succeeds, then it is supported
             var response = await GraylogQueryViewExecuteAsync(graylogSource, KnownIntervals.minute, dummyQueries);
@@ -290,90 +282,13 @@ namespace Graylog2Grafana.Services
             return response.Success;
         }
 
-        private async Task<(bool Success, Dictionary<string, Dictionary<long, decimal>> Data)> GraylogQueryHistogramAsync(
-            MonitorSources graylogSource,
-            List<(long MonitorSeriesId, string Query, DateTime DateFrom, DateTime DateTo, string Aggregation, string Property)> queries)
-        {
-            Dictionary<string, Dictionary<long, decimal>> result = new Dictionary<string, Dictionary<long, decimal>>();
-
-            foreach (var query in queries)
-            {
-                var resultInner = await GraylogQueryHistogramAsync(graylogSource, query.Query, KnownIntervals.minute, query.DateFrom, query.DateTo);
-
-                if (resultInner.Success)
-                {
-                    result.Add(query.MonitorSeriesId.ToString(), resultInner.Data);
-                }
-            }
-
-            return (true, result);
-        }
-
-        /// <summary>
-        /// Supported from graylog versions older than 4
-        /// </summary>
-        private async Task<(bool Success, Dictionary<long, decimal> Data)> GraylogQueryHistogramAsync(
-          MonitorSources graylogSource,
-          string query,
-          KnownIntervals interval,
-          DateTime dtFrom,
-          DateTime dtTo)
-        {
-            try
-            {
-                var _httpClient = _clientFactory.CreateClient("Graylog");
-                string base64 = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{graylogSource.Username}:{graylogSource.Password}"));
-                _httpClient.BaseAddress = new Uri(graylogSource.Source.Trim('/'));
-                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", base64);
-
-                string timestampFilter = $@" timestamp:[""{dtFrom:yyyy-MM-dd HH:mm:00.000}"" TO ""{dtTo:yyyy-MM-dd HH:mm:00.000}""] ";
-
-                query += $" {(string.IsNullOrWhiteSpace(query) ? string.Empty : "AND")} {timestampFilter}";
-
-                var parameters = new NameValueCollection
-                {
-                    {"query", query},
-                    {"interval", interval.ToString()}
-                };
-
-                string AttachParameters(NameValueCollection parameters)
-                {
-                    var stringBuilder = new StringBuilder();
-                    string str = "?";
-                    for (int index = 0; index < parameters.Count; ++index)
-                    {
-                        stringBuilder.Append(str + parameters.AllKeys[index] + "=" + parameters[index]);
-                        str = "&";
-                    }
-                    return stringBuilder.ToString();
-                }
-
-                using (HttpResponseMessage response = await _httpClient.GetAsync($"/api/search/universal/relative/histogram{AttachParameters(parameters)}"))
-                {
-                    response.EnsureSuccessStatusCode();
-
-                    using (HttpContent content = response.Content)
-                    {
-                        string strResult = await content.ReadAsStringAsync();
-
-                        return (true, JsonConvert.DeserializeAnonymousType(strResult, new { results = new Dictionary<long, decimal>() }).results);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.Error(ex, $"Error loading Graylog query '{query}' | Error {ex.Message}");
-                return (false, new Dictionary<long, decimal>());
-            }
-        }
-
         /// <summary>
         /// Supported from graylog version 3.3 and above
         /// </summary>
         private async Task<(bool Success, Dictionary<string, Dictionary<long, decimal>> Data)> GraylogQueryViewExecuteAsync(
           MonitorSources graylogSource,
           KnownIntervals interval,
-          List<(long MonitorSeriesId, string Query, DateTime DateFrom, DateTime DateTo, string Aggregation, string Property)> queries)
+          List<(string QueryId, string Query, DateTime DateFrom, DateTime DateTo, string Aggregation, string Property)> queries)
         {
             try
             {

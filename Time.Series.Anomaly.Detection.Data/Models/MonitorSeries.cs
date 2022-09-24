@@ -5,25 +5,24 @@ using Time.Series.Anomaly.Detection.Data.Models.Enums;
 
 namespace Time.Series.Anomaly.Detection.Data.Models
 {
+    public class MonitorSeriesForGroupValue : MonitorSeries
+    {
+        public string GroupValue { get; set; }
+    }
+
     public class MonitorSeries
     {
         [JsonIgnore]
         public long ID { get; set; }
 
         [Required]
-        [RegularExpression(@"^\w+$", ErrorMessage = "Allowed characters are a_z 0_9 and _")]
+        //[RegularExpression(@"^\w+$", ErrorMessage = "Allowed characters are a_z 0_9 and _")]
         public string Name { get; set; }
 
         public string Description { get; set; }
 
         [Required]
         public string Query { get; set; }
-
-        [Required]
-        public string Aggregation { get; set; }
-
-        [RegularExpression(@"^\w+$", ErrorMessage = "Allowed characters are a_z 0_9 and _")]
-        public string Field { get; set; }        
 
         [Required]
         [Range(1, 100)]
@@ -49,10 +48,34 @@ namespace Time.Series.Anomaly.Detection.Data.Models
         [JsonIgnore]
         public MonitorSources MonitorSource { get; set; }
 
+        [Required]
+        public int MonitorGroupID { get; set; }
+
+        [JsonIgnore]
+        public MonitorGroups MonitorGroup { get; set; }
+
         [JsonIgnore]
         public virtual List<MonitorSeriesData> MonitorSeriesData { get; set; }
 
         [JsonIgnore]
         public virtual List<AnomalyDetectionData> AnomalyDetectionData { get; set; }
+
+        // Aggregation
+
+        [Required]
+        public string Aggregation { get; set; }
+
+        [RegularExpression(@"^\w+$", ErrorMessage = "Allowed characters are a_z 0_9 and _")]
+        public string Field { get; set; }
+
+        // Group
+
+        [RegularExpression(@"^\w+$", ErrorMessage = "Allowed characters are a_z 0_9 and _")]
+        public string GroupBy { get; set; }
+
+        /// <summary>
+        /// Comma separated
+        /// </summary>
+        public string GroupByValues { get; set; }
     }
 }

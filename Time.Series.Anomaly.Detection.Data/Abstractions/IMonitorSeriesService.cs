@@ -12,6 +12,7 @@ namespace Time.Series.Anomaly.Detection.Data.Abstractions
         Task UpdateAsync(MonitorSeries item);
         Task UpdateSensitivityAsync(long id, int sensitivity);
         Task DeleteDataAsync(long id);
+        Task DeleteDataAsync(long id, string groupValue);
         Task DeleteAsync(MonitorSeries item);
     }
 }

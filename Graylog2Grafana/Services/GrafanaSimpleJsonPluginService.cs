@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Time.Series.Anomaly.Detection.Data.Abstractions;
+using Time.Series.Anomaly.Detection.Data.Extensions;
 using Time.Series.Anomaly.Detection.Data.Models;
 using Time.Series.Anomaly.Detection.Data.Models.Enums;
 using Time.Series.Anomaly.Detection.Models;
@@ -30,7 +31,7 @@ namespace Graylog2Grafana.Abstractions
 
         public async Task<IEnumerable<string>> SearchAsync(SearchRequest request)
         {
-            var monitorSeries = await _monitorSeriesService.GetAllAsync();
+            var monitorSeries = (await _monitorSeriesService.GetAllAsync()).SelectMany(x => x.AllWithGrouping());
 
             var result = monitorSeries.Select(x => x.Name).ToList();
 
@@ -45,7 +46,7 @@ namespace Graylog2Grafana.Abstractions
 
             if (request != null)
             {
-                var monitorSeries = await _monitorSeriesService.GetAllAsync();
+                var monitorSeries = (await _monitorSeriesService.GetAllAsync()).SelectMany(x => x.AllWithGrouping());
 
                 foreach (var reqTarget in request.Targets)
                 {
@@ -81,21 +82,26 @@ namespace Graylog2Grafana.Abstractions
                         case "timeserie":
                         default:
                             {
-                                var monitorSeriesItems = monitorSeries.Where(x => x.Name.Equals(reqTarget.Target));
+                                var monitorSeriesItem = monitorSeries.FirstOrDefault(x => x.Name.Equals(reqTarget.Target));
 
-                                var monitorSeriesData = await GetMonitorSeriesData(monitorSeriesItems, request.Range.From, request.Range.To);
-
-                                if (monitorSeriesData != null)
+                                if (monitorSeriesItem != null)
                                 {
-                                    response.Add(new TimeSiriesReponseTargetItem()
+                                    var monitorSeriesData = await GetMonitorSeriesData(monitorSeriesItem.ID, monitorSeriesItem.GroupValue, request.Range.From, request.Range.To);
+
+                                    if (monitorSeriesData != null)
                                     {
-                                        Target = reqTarget.Target,
-                                        Datapoints = monitorSeriesData.Select(x => new List<object>()
+                                        response.Add(new TimeSiriesReponseTargetItem()
                                         {
-                                            x.Value, Utils.GetUnixTimestampMilliseconds(x.Timestamp)
-                                        }).ToList()
-                                    });
+                                            Target = reqTarget.Target,
+                                            Datapoints = monitorSeriesData.Select(x => new List<object>()
+                                            {
+                                                x.Value, Utils.GetUnixTimestampMilliseconds(x.Timestamp)
+                                            }).ToList()
+                                        });
+                                    }
                                 }
+
+                                
                                 break;
                             }
                     }
@@ -105,9 +111,9 @@ namespace Graylog2Grafana.Abstractions
             return response;
         }
 
-        private async Task<List<MonitorSeriesData>> GetMonitorSeriesData(IEnumerable<MonitorSeries> monitorSeriesItems, DateTime from, DateTime to)
+        private async Task<List<MonitorSeriesData>> GetMonitorSeriesData(long monitorSeriesId, string monitorSeriesGroupValue, DateTime from, DateTime to)
         {
-            var monitorSeriesData = (await _monitorSeriesDataService.GetInRangeAsync(monitorSeriesItems.Select(x => x.ID).ToList(), from, to))
+            var monitorSeriesData = (await _monitorSeriesDataService.GetInRangeAsync(monitorSeriesId, monitorSeriesGroupValue, from, to))
                     .OrderBy(x => x.Timestamp)
                     .ToList();
 
@@ -135,8 +141,7 @@ namespace Graylog2Grafana.Abstractions
             {
                 var annotationTypeName = queryItems[0];
 
-                if (request.Annotation.Enable &&
-                    Enum.IsDefined(typeof(MonitorType), annotationTypeName))
+                if (request.Annotation.Enable && Enum.IsDefined(typeof(MonitorType), annotationTypeName))
                 {
                     var annotationType = annotationTypes.Single(x => x.ToString().Equals(annotationTypeName, StringComparison.OrdinalIgnoreCase));
 

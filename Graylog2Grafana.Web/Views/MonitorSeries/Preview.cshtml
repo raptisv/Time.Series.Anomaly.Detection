@@ -1,25 +1,26 @@
 ﻿@using Time.Series.Anomaly.Detection.Data.Models;
-@model MonitorSeries
+@model (MonitorSeries Series, string GroupValue)
 @{
-    ViewData["Title"] = "Preview " + Model.Name;
+    ViewData["Title"] = "Preview " + Model.Series.Name;
 }
 
 @section Scripts{
     <script type="text/javascript">
-        const monitorSeriesId = @Model.ID;
+        const monitorSeriesId = @Model.Series.ID;
+        const monitorSeriesGroupValue = '@(Model.GroupValue?.Trim() ?? string.Empty)';
     </script>
     <script src="~/js/monitor-series-preview.js" asp-append-version="true"></script>
 }
 
 <div class="card text-white bg-dark mb-3">
-    <div class="card-header">Preview @Model.Name</div>
+    <div class="card-header">Preview @Model.Series.Name</div>
     <div class="card-body">
         <label class="form-label">Query</label>
-        <div class="text-muted">@Model.Query</div>
+        <div class="text-muted">@Model.Series.Query</div>
         <label for="sensitivity-range" class="form-label">Sensitivity </label>
-        <div id="lbl-sensitivity" class="text-muted">@Model.Sensitivity</div>
-        <input type="range" class="form-range" id="sensitivity-range" min="1" max="100" value="@Model.Sensitivity">
+        <div id="lbl-sensitivity" class="text-muted">@Model.Series.Sensitivity</div>
+        <input type="range" class="form-range" id="sensitivity-range" min="1" max="100" value="@Model.Series.Sensitivity">
         <hr />
-        <div id="canvas-wrapper-single-@Model.ID" class="mt-4"></div>
+        <div id="canvas-wrapper-single-@Model.Series.ID" class="mt-4"></div>
     </div>
 </div>

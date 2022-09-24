@@ -7,7 +7,7 @@ namespace Graylog2Grafana.Models.Graylog.GraylogApi
 {
     public class SearchCreateRequest
     {
-        public SearchCreateRequest(string id, List<(long queryId, string Query, DateTime DateFrom, DateTime DateTo, string Aggregation, string Field)> queries,
+        public SearchCreateRequest(string id, List<(string queryId, string Query, DateTime DateFrom, DateTime DateTo, string Aggregation, string Field)> queries,
             KnownIntervals interval)
         {
             Id = id;
@@ -194,8 +194,9 @@ namespace Graylog2Grafana.Models.Graylog.GraylogApi
 
         public class QueryItem
         {
-            public QueryItem(List<(long queryId, string Query, DateTime DateFrom, DateTime DateTo, string Aggregation, string Field)> queries, KnownIntervals interval)
+            public QueryItem(List<(string queryId, string Query, DateTime DateFrom, DateTime DateTo, string Aggregation, string Field)> queries, KnownIntervals interval)
             {
+
                 Id = "result_id";
                 QueryData = new Query()
                 {
@@ -212,7 +213,10 @@ namespace Graylog2Grafana.Models.Graylog.GraylogApi
                     Type = "or",
                     Filters = new List<object>()
                 };
-                SearchTypes = queries.Select(x => new SearchType(x.queryId.ToString(), x.Query, x.DateFrom, x.DateTo, interval, x.Aggregation, x.Field)).ToList();
+                SearchTypes = queries.Select(x =>
+                {
+                    return new SearchType(x.queryId, x.Query, x.DateFrom, x.DateTo, interval, x.Aggregation, x.Field);
+                }).ToList();
             }
 
             [JsonProperty("id")]

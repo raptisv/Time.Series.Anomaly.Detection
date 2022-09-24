@@ -1,6 +1,7 @@
 ﻿using Graylog2Grafana.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using System;
@@ -18,6 +19,7 @@ namespace Graylog2Grafana.Web.Controllers
     {
         private readonly IMonitorSeriesService _monitorSeriesService;
         private readonly IMonitorSourcesService _monitorSourcesService;
+        private readonly IMonitorGroupsService _monitorGroupsService; 
         private readonly IMonitorSeriesDataService _monitorSeriesDataService;
         private readonly IMonitorSeriesDataAnomalyDetectionService _monitorSeriesDataAnomalyDetectionService;
         private readonly IServiceScopeFactory _scopeFactory;
@@ -28,9 +30,11 @@ namespace Graylog2Grafana.Web.Controllers
             IMonitorSeriesDataService monitorSeriesDataService,
             IMonitorSeriesDataAnomalyDetectionService monitorSeriesDataAnomalyDetectionService,
             ApplicationDbContext dbContext,
-            IServiceScopeFactory scopeFactory)
+            IServiceScopeFactory scopeFactory,
+            IMonitorGroupsService monitorGroupsService)
         {
             _monitorSeriesService = monitorSeriesService;
+            _monitorGroupsService = monitorGroupsService;
             _monitorSourcesService = monitorSourcesService;
             _monitorSeriesDataService = monitorSeriesDataService;
             _monitorSeriesDataAnomalyDetectionService = monitorSeriesDataAnomalyDetectionService;
@@ -38,13 +42,14 @@ namespace Graylog2Grafana.Web.Controllers
         }
 
         [HttpGet]
-        public IActionResult Create()
+        public IActionResult Create(int group)
         {
             var model = new MonitorSeries()
             {
                 ID = 0,
                 MinuteDurationForAnomalyDetection = 60,
-                Sensitivity = 50
+                Sensitivity = 50,
+                MonitorGroupID = group
             };
 
             return View("AddEdit", model);
@@ -127,11 +132,11 @@ namespace Graylog2Grafana.Web.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Preview(long id)
+        public async Task<IActionResult> Preview(long id, string groupValue)
         {
             var monitorSeries = await _monitorSeriesService.GetByIdAsync(id);
 
-            return View(monitorSeries);
+            return View((monitorSeries, groupValue));
         }
 
         [HttpPut]
@@ -143,19 +148,19 @@ namespace Graylog2Grafana.Web.Controllers
         }
 
         [HttpDelete]
-        public async Task<IActionResult> DeleteData(long id)
+        public async Task<IActionResult> DeleteData(long id, string groupValue)
         {
-            await _monitorSeriesService.DeleteDataAsync(id);
+            await _monitorSeriesService.DeleteDataAsync(id, groupValue);
 
             return Ok();
         }
 
         [HttpGet]
-        public async Task<JsonResult> DetectionResult(long id)
+        public async Task<JsonResult> DetectionResult(long id, string groupValue)
         {
             var monitorSeries = await _monitorSeriesService.GetByIdAsync(id);
 
-            var monitorSeriesData = await _monitorSeriesDataService.GetLatestAsync(monitorSeries.MinuteDurationForAnomalyDetection, monitorSeries.ID);
+            var monitorSeriesData = await _monitorSeriesDataService.GetLatestAsync(monitorSeries.MinuteDurationForAnomalyDetection, monitorSeries.ID, groupValue, null);
 
             var anomlyDetectionResult = _monitorSeriesDataAnomalyDetectionService.DetectAnomalies(monitorSeries, monitorSeriesData);
 
@@ -169,7 +174,12 @@ namespace Graylog2Grafana.Web.Controllers
         {
             try
             {
-                var allSeries = await _monitorSeriesService.GetAllAsync();
+                using var scope = _scopeFactory.CreateScope();
+                using var _dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+                var allSeries = await _dbContext.MonitorSeries
+                                .Include(x => x.MonitorSource)
+                                .ToListAsync();
 
                 var result = new ImportExportObject()
                 {
@@ -193,7 +203,6 @@ namespace Graylog2Grafana.Web.Controllers
         {
             try
             {
-
                 if (model == null )
                 {
                     throw new Exception("Post body cannot be empty");
@@ -205,17 +214,24 @@ namespace Graylog2Grafana.Web.Controllers
                 }
 
                 var existingSources = await _monitorSourcesService.GetAllAsync();
+                var existingGroups = await _monitorGroupsService.GetAllAsync();
                 var existingSeries = await _monitorSeriesService.GetAllAsync();
+
+                if (!existingSources.Any())
+                {
+                    throw new Exception($"At least one source must be present!");
+                }
+
+                if (!existingGroups.Any())
+                {
+                    throw new Exception($"At least one group must be present!");
+                }
 
                 using var scope = _scopeFactory.CreateScope();
                 using var _dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
                 using (var transaction = _dbContext.Database.BeginTransaction())
                 {
-                    if (!existingSources.Any())
-                    {
-                        throw new Exception($"At least one source must be present!");
-                    }
 
                     for(int i=0;i< model.Series.Count;i++)
                     {
@@ -235,6 +251,20 @@ namespace Graylog2Grafana.Web.Controllers
                         {
                             // If source not set, take the first
                             incoming.MonitorSourceID = existingSources.First().ID;
+                        }
+
+                        if (incoming.MonitorGroupID > 0)
+                        {
+                            // If source does not exist
+                            if (!existingGroups.Any(s => s.ID == incoming.MonitorGroupID))
+                            {
+                                throw new Exception($"Group with ID {incoming.MonitorGroupID} not found!");
+                            }
+                        }
+                        else
+                        {
+                            // If source not set, take the first
+                            incoming.MonitorGroupID = existingGroups.First().ID;
                         }
 
                         if (existingSeries.Any(x => x.Name.Trim().ToLower().Equals(incoming.Name.Trim().ToLower())))

@@ -46,7 +46,7 @@ namespace Graylog2Grafana.Web
 
             services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =>
             {
-                options.UseSqlite($"Data Source={Path.Combine(filesDirectory.FullName, "Graylog2Grafana_v4.db")}");
+                options.UseSqlite($"Data Source={Path.Combine(filesDirectory.FullName, "Graylog2Grafana_v5.db")}");
             });
 
             services.AddIdentity<IdentityUser, IdentityRole>()
@@ -87,6 +87,7 @@ namespace Graylog2Grafana.Web
             .AddSingleton<IMonitorSeriesDataAnomalyDetectionService, MonitorSeriesDataAnomalyDetectionService>()
             .AddSingleton<INotificationSlackService, NotificationSlackService>()
             .AddSingleton<IMonitorSourcesService, MonitorSourcesService>()
+            .AddSingleton<IMonitorGroupsService, MonitorGroupsService>()            
             .AddSingleton<IMonitorSeriesService, MonitorSeriesService>()
             .AddSingleton<IMonitorSeriesDataService, MonitorSeriesDataService>()
             .AddSingleton<IAnomalyDetectionDataService, AnomalyDetectionDataService>()

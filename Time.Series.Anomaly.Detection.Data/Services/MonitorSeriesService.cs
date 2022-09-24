@@ -66,6 +66,11 @@ namespace Time.Series.Anomaly.Detection.Data.Services
             model.Name = model.Name.Trim();
             model.Query = model.Query.Trim();
 
+            if (model.Aggregation != "count" && string.IsNullOrWhiteSpace(model.Field))
+            {
+                throw new Exception("Field is required for aggregations other than 'count'");
+            }
+
             var existing = await GetAllAsync();
 
             if (existing.Any(x => x.Name.ToLower().Equals(model.Name.ToLower()) && x.ID != model.ID))
@@ -87,6 +92,10 @@ namespace Time.Series.Anomaly.Detection.Data.Services
             _dbContext.Entry(model).Property(x => x.DoNotAlertAgainWithinMinutes).IsModified = true;
             _dbContext.Entry(model).Property(x => x.Aggregation).IsModified = true;
             _dbContext.Entry(model).Property(x => x.Field).IsModified = true;
+            _dbContext.Entry(model).Property(x => x.GroupBy).IsModified = true;
+            _dbContext.Entry(model).Property(x => x.GroupByValues).IsModified = true;
+            _dbContext.Entry(model).Property(x => x.MonitorSourceID).IsModified = true;
+            _dbContext.Entry(model).Property(x => x.MonitorGroupID).IsModified = true;
 
             await _dbContext.SaveChangesAsync();
         }
@@ -106,6 +115,19 @@ namespace Time.Series.Anomaly.Detection.Data.Services
             await _dbContext.SaveChangesAsync();
         }
 
+        public async Task DeleteDataAsync(long id, string groupValue)
+        {
+            using var scope = _scopeFactory.CreateScope();
+            using var _dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+            var data = _dbContext.MonitorSeriesData.Where(u => u.MonitorSeriesID == id && u.MonitorSeriesGroupValue == groupValue);
+            _dbContext.MonitorSeriesData.RemoveRange(data);
+
+            var alerts = _dbContext.AnomalyDetectionData.Where(u => u.MonitorSeriesID == id && u.MonitorSeriesGroupValue == groupValue);
+            _dbContext.AnomalyDetectionData.RemoveRange(alerts);
+
+            await _dbContext.SaveChangesAsync();
+        }
 
         public async Task UpdateSensitivityAsync(long id, int sensitivity)
         {
