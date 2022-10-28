@@ -2,6 +2,7 @@ using Graylog2Grafana.Abstractions;
 using Graylog2Grafana.Services;
 using Graylog2Grafana.Workers;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -11,6 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json.Serialization;
 using Serilog;
+using StackExchange.Redis;
 using System;
 using System.IO;
 using System.Net.Http.Headers;
@@ -48,6 +50,19 @@ namespace Graylog2Grafana.Web
             {
                 options.UseSqlite($"Data Source={Path.Combine(filesDirectory.FullName, "Graylog2Grafana_v5.db")}");
             });
+
+            var aspDataProtectionRedisHost = Configuration.GetValue<string>("Configuration:DataProtection:Redis:Host");
+            if (!string.IsNullOrWhiteSpace(aspDataProtectionRedisHost))
+            {
+                var aspDataProtectionRedisPort = Configuration.GetValue<int?>("Configuration:DataProtection:Redis:Port") ?? 6379;
+
+                var redisUri = $"{aspDataProtectionRedisHost}:{aspDataProtectionRedisPort}";
+
+                Console.WriteLine($"Using redis to persist key for data protection: '{redisUri}'");
+                var redis = ConnectionMultiplexer.Connect(redisUri);
+                services.AddDataProtection()
+                    .PersistKeysToStackExchangeRedis(redis, "DataProtection-Keys");
+            }
 
             services.AddIdentity<IdentityUser, IdentityRole>()
                 .AddRoles<IdentityRole>()

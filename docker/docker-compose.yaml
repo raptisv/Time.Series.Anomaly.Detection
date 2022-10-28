@@ -78,7 +78,7 @@ services:
 
   # Graylog2Grafana.Web
   graylog2grafana:
-    image: raptis/graylog2grafana:5.1
+    image: raptis/graylog2grafana:5.2
     restart: always
     depends_on:
       - graylog
@@ -91,10 +91,9 @@ services:
       - ASPNETCORE_ENVIRONMENT=Production
       - Configuration__Url=http://0.0.0.0:5002
       - Configuration__FilesPath=/etc/graylog2grafana/Files
-      - Slack__Enabled=false
-      - Slack__Channel=slack_channel_id
-      - Slack__BearerToken=slack_auth_bearer_token
       - Serilog__WriteTo__0__Args__hostnameOrAddress=graylog
+      # Add Redis__Host if you wish to store data protection persist keys to redis
+      - Configuration__DataProtection__Redis__Host=
     volumes:
       - graylog2grafana-data:/etc/graylog2grafana
 
