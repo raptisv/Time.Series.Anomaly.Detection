@@ -11,10 +11,12 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json.Serialization;
+using Prometheus;
 using Serilog;
 using StackExchange.Redis;
 using System;
 using System.IO;
+using System.Net;
 using System.Net.Http.Headers;
 using Time.Series.Anomaly.Detection.Abstractions;
 using Time.Series.Anomaly.Detection.Data.Abstractions;
@@ -124,6 +126,8 @@ namespace Graylog2Grafana.Web
             {
                 c.BaseAddress = new Uri("https://slack.com");
             });
+
+            services.AddHealthChecks();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -170,6 +174,11 @@ namespace Graylog2Grafana.Web
                 endpoints.MapControllerRoute(
                     name: "default",
                     pattern: "{controller=Home}/{action=Index}/{id?}");
+
+                endpoints.MapHealthChecks("/healthz/liveness");
+                endpoints.MapHealthChecks("/healthz/readiness");
+
+                endpoints.MapMetrics();
             });
         }
     }
