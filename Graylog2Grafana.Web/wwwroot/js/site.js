@@ -19,6 +19,16 @@ function deleteSeriesData(itemId, groupValue) {
     }
 }
 
+function setCookie(name, value, days) {
+    var expires = "";
+    if (days) {
+        var date = new Date();
+        date.setTime(date.getTime() + (days*24*60*60*1000));
+        expires = "; expires=" + date.toUTCString();
+    }
+    document.cookie = name + "=" + (value || "")  + expires + "; path=/";
+}
+
 $(document).ready(function () {
 
     var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
@@ -55,4 +65,9 @@ $(document).ready(function () {
         }
     });
 
+    $('.theme-select-item').click(function(){
+        var themeId = $(this).data().id;
+        setCookie('theme', themeId, 3000);
+        location.reload();
+    });
 });

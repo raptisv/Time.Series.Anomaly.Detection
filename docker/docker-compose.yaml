@@ -78,7 +78,7 @@ services:
 
   # Graylog2Grafana.Web
   graylog2grafana:
-    image: raptis/graylog2grafana:5.2
+    image: raptis/graylog2grafana:5.4
     restart: always
     depends_on:
       - graylog

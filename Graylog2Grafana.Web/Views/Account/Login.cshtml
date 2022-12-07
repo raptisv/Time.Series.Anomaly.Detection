@@ -1,8 +1,11 @@
 ﻿@using Graylog2Grafana.Web.Models;
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
 @model LoginViewModel
+
 @{
     Layout = null;
     ViewData["Title"] = "Login";
+    var theme = HttpContextAccessor.HttpContext.Request.Cookies.TryGetValue("theme", out string val) ? val : "Cosmo";
 }
 
 <!DOCTYPE html>
@@ -11,7 +14,7 @@
     <title>@ViewData["Title"] - Graylog2Grafana</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="~/lib/bootstrap-5.0.2/css/bootstrap.darkly.min.css" />
+    <link rel="stylesheet" href="~/lib/bootstrap-5.0.2/css/bootstrap.@(theme).min.css" />
     <link rel="stylesheet" href="~/lib/bootstrap-icons-1.6.1/bootstrap-icons.css" />
     <link rel="stylesheet" href="~/css/site.css" />
 </head>
@@ -20,29 +23,35 @@
     <div class="container">
         <div class="row">
             <div class="col-md-4 offset-md-4">
-                <div class="login-form bg-dark mt-4 p-4">
+                <div class="login-form mt-4 p-4">
 
-                    @using (Html.BeginForm("Login", "Account", new { ReturnUrl = ViewBag.ReturnUrl }, FormMethod.Post, true, new { @class = "row g-3", role = "form" }))
-                    {
-                        <h4 class="text-center">Graylog2Grafana</h4>
-                        <h5 class="text-center">Login</h5>
+                    <div class="card border-primary">
+                        <div class="card-header">
+                            Login
+                        </div>
+                        <div class="card-body">
+                            @using (Html.BeginForm("Login", "Account", new { ReturnUrl = ViewBag.ReturnUrl }, FormMethod.Post, true, new { @class = "row g-3", role = "form" }))
+                            {
+                                <h4 class="text-center">Graylog2Grafana</h4>
 
-                        <div class="col-12">
-                            @Html.TextBoxFor(m => m.Username, new { @class = "form-control", maxlength = 50, placeholder = "Username" })
-                            @Html.ValidationMessageFor(m => m.Username, "", new { @class = "text-danger" })
+                                <div class="col-12">
+                                    @Html.TextBoxFor(m => m.Username, new { @class = "form-control", maxlength = 50, placeholder = "Username" })
+                                    @Html.ValidationMessageFor(m => m.Username, "", new { @class = "text-danger" })
+                                </div>
+                                <div class="col-12">
+                                    @Html.PasswordFor(m => m.Password, new { @class = "form-control", maxlength = 50, placeholder = "Password" })
+                                    @Html.ValidationMessageFor(m => m.Password, "", new { @class = "text-danger" })
+                                </div>
+                                <div class="col-12">
+                                    @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+                                    @Html.ValidationMessage("CustomError", new { @class = "text-danger" })
+                                </div>
+                                <div class="col-12">
+                                    <button type="submit" class="btn btn-primary float-end">Login</button>
+                                </div>
+                            }
                         </div>
-                        <div class="col-12">
-                            @Html.PasswordFor(m => m.Password, new { @class = "form-control", maxlength = 50, placeholder = "Password" })
-                            @Html.ValidationMessageFor(m => m.Password, "", new { @class = "text-danger" })
-                        </div>
-                        <div class="col-12">
-                            @Html.ValidationSummary(true, "", new { @class = "text-danger" })
-                            @Html.ValidationMessage("CustomError", new { @class = "text-danger" })
-                        </div>
-                        <div class="col-12">
-                            <button type="submit" class="btn btn-primary float-end">Login</button>
-                        </div>
-                    }
+                    </div>
                 </div>
             </div>
         </div>
