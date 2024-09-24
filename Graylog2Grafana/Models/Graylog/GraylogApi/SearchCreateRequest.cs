@@ -1,7 +1,7 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Serialization;
 
 namespace Graylog2Grafana.Models.Graylog.GraylogApi
 {
@@ -17,72 +17,72 @@ namespace Graylog2Grafana.Models.Graylog.GraylogApi
             };
         }
 
-        [JsonProperty("id")]
+        [JsonPropertyName("id")]
         public string Id { get; set; }
 
-        [JsonProperty("queries")]
+        [JsonPropertyName("queries")]
         public List<QueryItem> Queries { get; set; }
 
         public class TimerangeRelative
         {
-            [JsonProperty("type")]
+            [JsonPropertyName("type")]
             public string Type { get; set; }
 
-            [JsonProperty("from")]
+            [JsonPropertyName("from")]
             public int From { get; set; }
         }
 
         public class TimerangeAbsolute
         {
-            [JsonProperty("type")]
+            [JsonPropertyName("type")]
             public string Type { get; set; }
 
-            [JsonProperty("from")]
+            [JsonPropertyName("from")]
             public string From { get; set; }
 
-            [JsonProperty("to")]
+            [JsonPropertyName("to")]
             public string To { get; set; }
         }
 
         public class Filter
         {
-            [JsonProperty("type")]
+            [JsonPropertyName("type")]
             public string Type { get; set; }
 
-            [JsonProperty("filters")]
+            [JsonPropertyName("filters")]
             public List<object> Filters { get; set; }
         }
 
         public class Series
         {
-            [JsonProperty("type")]
+            [JsonPropertyName("type")]
             public string Type { get; set; }
 
-            [JsonProperty("id")]
+            [JsonPropertyName("id")]
             public string Id { get; set; }
 
-            [JsonProperty("field")]
+            [JsonPropertyName("field")]
             public string Field { get; set; }
         }
 
         public class Interval
         {
-            [JsonProperty("type")]
+            [JsonPropertyName("type")]
             public string Type { get; set; }
 
-            [JsonProperty("timeunit")]
+            [JsonPropertyName("timeunit")]
             public string Timeunit { get; set; }
         }
 
         public class RowGroup
         {
-            [JsonProperty("type")]
+            [JsonPropertyName("type")]
             public string Type { get; set; }
 
-            [JsonProperty("field")]
+            [JsonPropertyName("field")]
             public string Field { get; set; }
 
-            [JsonProperty("interval")]
+            [JsonPropertyName("interval")]
             public Interval Interval { get; set; }
         }
 
@@ -161,34 +161,34 @@ namespace Graylog2Grafana.Models.Graylog.GraylogApi
                 };
             }
 
-            [JsonProperty("timerange")]
+            [JsonPropertyName("timerange")]
             public TimerangeAbsolute Timerange { get; }
 
-            [JsonProperty("query")]
+            [JsonPropertyName("query")]
             public Query Query { get; }
 
-            [JsonProperty("id")]
+            [JsonPropertyName("id")]
             public string Id { get; }
 
-            [JsonProperty("series")]
+            [JsonPropertyName("series")]
             public List<Series> Series { get; }
 
-            [JsonProperty("rollup")]
+            [JsonPropertyName("rollup")]
             public bool Rollup { get; }
 
-            [JsonProperty("type")]
+            [JsonPropertyName("type")]
             public string Type { get; }
 
-            [JsonProperty("row_groups")]
+            [JsonPropertyName("row_groups")]
             public List<RowGroup> RowGroups { get; }
         }
 
         public class Query
         {
-            [JsonProperty("type")]
+            [JsonPropertyName("type")]
             public string Type { get; set; }
 
-            [JsonProperty("query_string")]
+            [JsonPropertyName("query_string")]
             public string QueryString { get; set; }
         }
 
@@ -219,19 +219,19 @@ namespace Graylog2Grafana.Models.Graylog.GraylogApi
                 }).ToList();
             }
 
-            [JsonProperty("id")]
+            [JsonPropertyName("id")]
             public string Id { get; }
 
-            [JsonProperty("timerange")]
+            [JsonPropertyName("timerange")]
             public TimerangeRelative Timerange { get; }
 
-            [JsonProperty("filter")]
+            [JsonPropertyName("filter")]
             public Filter Filter { get; }
 
-            [JsonProperty("query")]
+            [JsonPropertyName("query")]
             public Query QueryData { get; }
 
-            [JsonProperty("search_types")]
+            [JsonPropertyName("search_types")]
             public List<SearchType> SearchTypes { get; }
         }
     }

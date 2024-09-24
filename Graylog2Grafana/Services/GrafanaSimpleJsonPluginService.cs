@@ -90,7 +90,7 @@ namespace Graylog2Grafana.Abstractions
 
                                     if (monitorSeriesData != null)
                                     {
-                                        response.Add(new TimeSiriesReponseTargetItem()
+                                        response.Add(new TimeSeriesReponseTargetItem()
                                         {
                                             Target = reqTarget.Target,
                                             Datapoints = monitorSeriesData.Select(x => new List<object>()

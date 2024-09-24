@@ -1,35 +1,35 @@
 ﻿using Graylog2Grafana.SimpleJsonGrafanaPlugin.Models;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 using System;
 
 namespace Graylog2Grafana.Models.SimpleJsonGrafanaPlugin.Request
 {
     public class AnnotationsRequest
     {
-        [JsonProperty("range")]
+        [JsonPropertyName("range")]
         public RangeItem Range { get; set; }
 
-        [JsonProperty("rangeRaw")]
+        [JsonPropertyName("rangeRaw")]
         public RangeRawItem RangeRaw { get; set; }
 
-        [JsonProperty("annotation")]
+        [JsonPropertyName("annotation")]
         public AnnotationItem Annotation { get; set; }
 
         public class RangeItem
         {
-            [JsonProperty("from")]
+            [JsonPropertyName("from")]
             public DateTime From { get; set; }
 
-            [JsonProperty("to")]
+            [JsonPropertyName("to")]
             public DateTime To { get; set; }
         }
 
         public class RangeRawItem
         {
-            [JsonProperty("from")]
+            [JsonPropertyName("from")]
             public string From { get; set; }
 
-            [JsonProperty("to")]
+            [JsonPropertyName("to")]
             public string To { get; set; }
         }
     }

@@ -10,13 +10,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Newtonsoft.Json.Serialization;
-using Prometheus;
 using Serilog;
 using StackExchange.Redis;
 using System;
 using System.IO;
-using System.Net;
 using System.Net.Http.Headers;
 using Time.Series.Anomaly.Detection.Abstractions;
 using Time.Series.Anomaly.Detection.Data.Abstractions;
@@ -89,11 +86,7 @@ namespace Graylog2Grafana.Web
 
             services
             .AddMemoryCache()
-            .AddControllersWithViews()
-            .AddNewtonsoftJson(options =>
-            {
-                options.SerializerSettings.ContractResolver = new DefaultContractResolver();
-            });
+            .AddControllersWithViews();
 
             services
             // Singleton
@@ -175,10 +168,8 @@ namespace Graylog2Grafana.Web
                     name: "default",
                     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-                endpoints.MapHealthChecks("/healthz/liveness");
-                endpoints.MapHealthChecks("/healthz/readiness");
-
-                endpoints.MapMetrics();
+                endpoints.MapHealthChecks("/health/liveness");
+                endpoints.MapHealthChecks("/health/readiness");
             });
         }
     }

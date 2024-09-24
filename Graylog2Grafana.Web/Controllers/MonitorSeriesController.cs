@@ -3,11 +3,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Time.Series.Anomaly.Detection.Data.Abstractions;
 using Time.Series.Anomaly.Detection.Data.Models;
@@ -186,7 +186,8 @@ namespace Graylog2Grafana.Web.Controllers
                     Series = allSeries
                 };
 
-                var strResult = JsonConvert.SerializeObject(result, new JsonSerializerSettings() { NullValueHandling = NullValueHandling.Ignore, ReferenceLoopHandling = ReferenceLoopHandling.Ignore });
+                var strResult = JsonSerializer.Serialize(result);
+
                 byte[] bytes = System.Text.Encoding.UTF8.GetBytes(strResult);
 
                 var content = new MemoryStream(bytes);

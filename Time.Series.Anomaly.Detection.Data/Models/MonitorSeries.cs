@@ -1,6 +1,6 @@
-﻿using Newtonsoft.Json;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 using Time.Series.Anomaly.Detection.Data.Models.Enums;
 
 namespace Time.Series.Anomaly.Detection.Data.Models

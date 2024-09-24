@@ -1,19 +1,19 @@
-﻿using Newtonsoft.Json;
+﻿using System.Text.Json.Serialization;
 
 namespace Graylog2Grafana.SimpleJsonGrafanaPlugin.Models
 {
     public class AnnotationItem
     {
-        [JsonProperty("name")]
+        [JsonPropertyName("name")]
         public string Name { get; set; }
 
-        [JsonProperty("iconColor")]
+        [JsonPropertyName("iconColor")]
         public string IconColor { get; set; }
 
-        [JsonProperty("enable")]
+        [JsonPropertyName("enable")]
         public bool Enable { get; set; }
 
-        [JsonProperty("query")]
+        [JsonPropertyName("query")]
         public string Query { get; set; }
     }
 }

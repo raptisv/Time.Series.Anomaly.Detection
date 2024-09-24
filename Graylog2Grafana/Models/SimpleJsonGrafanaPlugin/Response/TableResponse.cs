@@ -1,25 +1,25 @@
-﻿using Newtonsoft.Json;
+﻿using System.Text.Json.Serialization;
 using System.Collections.Generic;
 
 namespace Graylog2Grafana.Models.SimpleJsonGrafanaPlugin.Response
 {
     public class TableResponseTargetItem
     {
-        [JsonProperty("type")]
+        [JsonPropertyName("type")]
         public string Type { get; set; }
 
-        [JsonProperty("columns")]
+        [JsonPropertyName("columns")]
         public List<Column> Columns { get; set; }
 
-        [JsonProperty("rows")]
+        [JsonPropertyName("rows")]
         public List<List<object>> Rows { get; set; }
 
         public class Column
         {
-            [JsonProperty("text")]
+            [JsonPropertyName("text")]
             public string Text { get; set; }
 
-            [JsonProperty("type")]
+            [JsonPropertyName("type")]
             public string Type { get; set; }
         }
     }

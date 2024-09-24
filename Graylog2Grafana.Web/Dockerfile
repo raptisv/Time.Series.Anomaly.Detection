@@ -1,8 +1,8 @@
-FROM mcr.microsoft.com/dotnet/aspnet:3.1 AS base
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
 WORKDIR /app
 EXPOSE 5002
 
-FROM mcr.microsoft.com/dotnet/sdk:3.1 AS build
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
 WORKDIR /src
 COPY ["Graylog2Grafana.Web/Graylog2Grafana.Web.csproj", "Graylog2Grafana.Web/"]
 COPY ["Time.Series.Anomaly.Detection.Data/Time.Series.Anomaly.Detection.Data.csproj", "Time.Series.Anomaly.Detection.Data/"]

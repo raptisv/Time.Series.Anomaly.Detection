@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+﻿using System.Text.Json.Serialization;
 using System;
 using System.Collections.Generic;
 
@@ -6,84 +6,84 @@ namespace Graylog2Grafana.Models.SimpleJsonGrafanaPlugin.Request
 {
     public class TimeSeriesRequest
     {
-        [JsonProperty("panelId")]
+        [JsonPropertyName("panelId")]
         public string PanelId { get; set; }
 
-        [JsonProperty("range")]
+        [JsonPropertyName("range")]
         public RangeItem Range { get; set; }
 
-        [JsonProperty("rangeRaw")]
+        [JsonPropertyName("rangeRaw")]
         public RangeRawItem RangeRaw { get; set; }
 
-        [JsonProperty("interval")]
+        [JsonPropertyName("interval")]
         public string Interval { get; set; }
 
-        [JsonProperty("intervalMs")]
+        [JsonPropertyName("intervalMs")]
         public int IntervalMs { get; set; }
 
-        [JsonProperty("targets")]
+        [JsonPropertyName("targets")]
         public List<TargetItem> Targets { get; set; }
 
-        [JsonProperty("adhocFilters")]
+        [JsonPropertyName("adhocFilters")]
         public List<AdhocFilterItem> AdhocFilters { get; set; }
 
-        [JsonProperty("format")]
+        [JsonPropertyName("format")]
         public string Format { get; set; }
 
-        [JsonProperty("maxDataPoints")]
+        [JsonPropertyName("maxDataPoints")]
         public int MaxDataPoints { get; set; }
 
         public class RawItem
         {
-            [JsonProperty("from")]
+            [JsonPropertyName("from")]
             public string From { get; set; }
 
-            [JsonProperty("to")]
+            [JsonPropertyName("to")]
             public string To { get; set; }
         }
 
         public class RangeItem
         {
-            [JsonProperty("from")]
+            [JsonPropertyName("from")]
             public DateTime From { get; set; }
 
-            [JsonProperty("to")]
+            [JsonPropertyName("to")]
             public DateTime To { get; set; }
 
-            [JsonProperty("raw")]
+            [JsonPropertyName("raw")]
             public RawItem Raw { get; set; }
         }
 
         public class RangeRawItem
         {
-            [JsonProperty("from")]
+            [JsonPropertyName("from")]
             public string From { get; set; }
 
-            [JsonProperty("to")]
+            [JsonPropertyName("to")]
             public string To { get; set; }
         }
 
         public class TargetItem
         {
-            [JsonProperty("target")]
+            [JsonPropertyName("target")]
             public string Target { get; set; }
 
-            [JsonProperty("refId")]
+            [JsonPropertyName("refId")]
             public string RefId { get; set; }
 
-            [JsonProperty("type")]
+            [JsonPropertyName("type")]
             public string Type { get; set; }
         }
 
         public class AdhocFilterItem
         {
-            [JsonProperty("key")]
+            [JsonPropertyName("key")]
             public string Key { get; set; }
 
-            [JsonProperty("operator")]
+            [JsonPropertyName("operator")]
             public string Operator { get; set; }
 
-            [JsonProperty("value")]
+            [JsonPropertyName("value")]
             public string Value { get; set; }
         }
     }

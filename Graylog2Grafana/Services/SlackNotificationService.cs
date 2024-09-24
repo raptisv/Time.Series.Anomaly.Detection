@@ -1,10 +1,10 @@
 ﻿using Graylog2Grafana.Abstractions;
-using Newtonsoft.Json;
 using Serilog;
 using System;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using System.Web;
 using Time.Series.Anomaly.Detection.Data.Abstractions;
@@ -65,7 +65,7 @@ namespace Graylog2Grafana.Services
                         throw new NotImplementedException($"Source type {currentMonitor.MonitorSource.SourceType} not yet implemented");
                 }
 
-                StringContent obj = new StringContent(JsonConvert.SerializeObject(new
+                StringContent obj = new StringContent(JsonSerializer.Serialize(new
                 {
                     channel = slackConfig.Channel,
                     text = message,

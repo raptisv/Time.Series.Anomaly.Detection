@@ -12,13 +12,10 @@ namespace Time.Series.Anomaly.Detection.Data.Services
     public class UsersService : IUsersService
     {
         private readonly IServiceScopeFactory _scopeFactory;
-        private UserManager<IdentityUser> _userManager;
 
         public UsersService(
-            UserManager<IdentityUser> userManager,
             IServiceScopeFactory scopeFactory)
         {
-            _userManager = userManager;
             _scopeFactory = scopeFactory;
         }
 

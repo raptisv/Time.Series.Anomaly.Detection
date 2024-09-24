@@ -1,5 +1,5 @@
 ﻿using Graylog2Grafana.SimpleJsonGrafanaPlugin.Models;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 
 namespace Graylog2Grafana.Models.SimpleJsonGrafanaPlugin.Request
 {
@@ -8,31 +8,31 @@ namespace Graylog2Grafana.Models.SimpleJsonGrafanaPlugin.Request
         /// <summary>
         /// The original annotation sent from Grafana.
         /// </summary>
-        [JsonProperty("annotation")]
+        [JsonPropertyName("annotation")]
         public AnnotationItem Annotation { get; set; }
 
         /// <summary>
         /// Time since UNIX Epoch in milliseconds. (required)
         /// </summary>
-        [JsonProperty("time")]
+        [JsonPropertyName("time")]
         public long Time { get; set; }
 
         /// <summary>
         /// The title for the annotation tooltip. (required)
         /// </summary>
-        [JsonProperty("title")]
+        [JsonPropertyName("title")]
         public string Title { get; set; }
 
         /// <summary>
         /// // Tags for the annotation. (optional)
         /// </summary>
-        [JsonProperty("tags")]
+        [JsonPropertyName("tags")]
         public string Tags { get; set; }
 
         /// <summary>
         /// // Text for the annotation. (optional)
         /// </summary>
-        [JsonProperty("text")]
+        [JsonPropertyName("text")]
         public string Text { get; set; }
     }
 }

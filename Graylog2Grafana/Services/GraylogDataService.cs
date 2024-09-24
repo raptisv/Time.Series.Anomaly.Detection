@@ -3,16 +3,14 @@ using Graylog2Grafana.Models;
 using Graylog2Grafana.Models.Graylog;
 using Graylog2Grafana.Models.Graylog.GraylogApi;
 using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json;
 using Serilog;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Time.Series.Anomaly.Detection.Data.Abstractions;
 using Time.Series.Anomaly.Detection.Data.Extensions;
@@ -30,11 +28,6 @@ namespace Graylog2Grafana.Services
         private readonly IMonitorSeriesDataAnomalyDetectionService _dataAnomalyDetectionService;
 
         private static string _graylogSearchId = Utils.GetRandomHexNumber(24);
-        private static JsonSerializerSettings _jsonSerializerSettings = new JsonSerializerSettings()
-        {
-            NullValueHandling = NullValueHandling.Ignore,
-            Formatting = Formatting.None
-        };
 
         public GraylogDataService(
             ILogger logger,
@@ -299,15 +292,17 @@ namespace Graylog2Grafana.Services
 
                 var searchCreateRequest = new SearchCreateRequest(_graylogSearchId, queries, interval);
 
-                var strRequest = JsonConvert.SerializeObject(searchCreateRequest, _jsonSerializerSettings);
+                var strRequest = JsonSerializer.Serialize(searchCreateRequest);
 
                 var searchCreateRequestPostBody = new StringContent(strRequest, Encoding.UTF8, "application/json");
 
                 using (HttpResponseMessage searchCreateResponse = await _httpClient.PostAsync($"/api/views/search", searchCreateRequestPostBody))
                 {
+                    var strResponse = await searchCreateResponse.Content.ReadAsStringAsync();
+
                     searchCreateResponse.EnsureSuccessStatusCode();
 
-                    var searchExecuteRequestPostBody = new StringContent(JsonConvert.SerializeObject(new { }), Encoding.UTF8, "application/json");
+                    var searchExecuteRequestPostBody = new StringContent(JsonSerializer.Serialize(new { }), Encoding.UTF8, "application/json");
 
                     using (HttpResponseMessage searchExecuteResponse = await _httpClient.PostAsync($"/api/views/search/{_graylogSearchId}/execute", searchExecuteRequestPostBody))
                     {
@@ -317,7 +312,7 @@ namespace Graylog2Grafana.Services
                         {
                             string strResult = await searchExecuteResponseContent.ReadAsStringAsync();
 
-                            var searchExecuteResult = JsonConvert.DeserializeObject<SearchExecuteResult>(strResult);
+                            var searchExecuteResult = JsonSerializer.Deserialize<SearchExecuteResult>(strResult);
 
                             if (!searchExecuteResult.Execution.Done)
                             {
