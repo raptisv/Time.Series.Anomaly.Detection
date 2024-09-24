@@ -61,3 +61,12 @@ Detected spikes are going to be displayed in the Grafana dashboard as explained 
 TODO: More ways to notify will be added and an easy way to configure will be exposed.
 
 Enjoy monitoring you custom Graylog queries 😊
+
+## Licensing
+
+- This project is licensed under the **MIT License**. See the [LICENSE](LICENSE.md) file for details.
+- The project includes third-party libraries that are licensed under the **Apache License 2.0**:
+  - **MKL.NET** (Apache License 2.0) - [Link to Library's License](https://github.com/MKL-NET/MKL.NET?tab=Apache-2.0-1-ov-file#readme)
+  - **Serilog** (Apache License 2.0) - [Link to Library's License](https://github.com/serilog/serilog?tab=Apache-2.0-1-ov-file#readme)
+  - **Serilog.AspNetCore** (Apache License 2.0) - [Link to Library's License](https://github.com/serilog/serilog-aspnetcore?tab=Apache-2.0-1-ov-file#readme)
+
